@@ -82,14 +82,13 @@ async function processWebhookPayload(body) {
       }
 
       for (const message of messages) {
-        if (message.type !== 'text') continue;
+        if (message.type !== 'text' && message.type !== 'interactive') continue;
 
         const from = message.from;
-        const text = message.text?.body || '';
 
-        const replies = await conversation.handleIncomingMessage(negocio, from, text);
+        const replies = await conversation.handleIncomingMessage(negocio, from, message);
         for (const reply of replies) {
-          await whatsapp.sendTextMessage(negocio.phoneNumberId, from, reply);
+          await whatsapp.sendMessage(negocio.phoneNumberId, from, reply);
         }
       }
     }

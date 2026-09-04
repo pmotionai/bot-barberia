@@ -24,11 +24,7 @@ function resetSession(negocio, from) {
 }
 
 function normalize(text) {
-  return text
-    .toLowerCase()
-    .trim()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
+  return faq.normalize(text);
 }
 
 function isAffirmative(text) {
@@ -39,33 +35,50 @@ function isNegative(text) {
   return /^(no|no\.|n|cancelar|cancela)$/.test(normalize(text));
 }
 
+function isCancelIntent(normalized) {
+  return /cancelar|anular/.test(normalized);
+}
+
+const WEEKDAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+
 /**
- * Intenta interpretar una fecha en formato DD/MM o DD/MM/YYYY.
- * Devuelve un DateTime (inicio del dia, zona del negocio) o null si no es valida.
+ * Intenta interpretar una fecha en lenguaje natural sencillo: "hoy",
+ * "mañana", un dia de la semana ("el viernes"), o una fecha DD/MM(/YYYY).
+ * Devuelve un DateTime (inicio del dia, zona del negocio) o null si no se
+ * ha entendido.
  */
 function parseDate(negocio, text) {
+  const normalized = normalize(text.trim());
+  const now = DateTime.now().setZone(negocio.timezone).startOf('day');
+
+  if (/^hoy$/.test(normalized)) return now;
+  if (/^manana$/.test(normalized)) return now.plus({ days: 1 });
+
+  const weekdayMatch = normalized.match(/(lunes|martes|miercoles|jueves|viernes|sabado|domingo)/);
+  if (weekdayMatch) {
+    const targetIdx = WEEKDAYS.indexOf(weekdayMatch[1]) + 1; // 1..7
+    let diff = targetIdx - now.weekday;
+    if (diff <= 0) diff += 7;
+    return now.plus({ days: diff });
+  }
+
   const match = text.trim().match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?$/);
-  if (!match) return null;
+  if (match) {
+    const [, dayStr, monthStr, yearStr] = match;
+    let year = yearStr ? parseInt(yearStr, 10) : now.year;
+    if (year < 100) year += 2000;
 
-  const [, dayStr, monthStr, yearStr] = match;
-  const now = DateTime.now().setZone(negocio.timezone);
-  let year = yearStr ? parseInt(yearStr, 10) : now.year;
-  if (year < 100) year += 2000;
+    const day = DateTime.fromObject(
+      { year, month: parseInt(monthStr, 10), day: parseInt(dayStr, 10) },
+      { zone: negocio.timezone }
+    );
+    if (day.isValid) return day;
+  }
 
-  const day = DateTime.fromObject(
-    { year, month: parseInt(monthStr, 10), day: parseInt(dayStr, 10) },
-    { zone: negocio.timezone }
-  );
-
-  if (!day.isValid) return null;
-  return day;
+  return null;
 }
 
-function formatSlotsList(slots) {
-  return slots.map((slot, i) => `${i + 1}. ${slot.toFormat('HH:mm')}`).join('\n');
-}
-
-function findChosenSlot(text, slots) {
+function findChosenSlotByText(text, slots) {
   const cleaned = text.trim();
 
   const asIndex = parseInt(cleaned, 10);
@@ -83,108 +96,151 @@ function findChosenSlot(text, slots) {
 }
 
 /**
- * Procesa un mensaje entrante de un negocio concreto y devuelve la lista de
- * mensajes de texto a enviar de vuelta al cliente. Puede tener efectos
- * secundarios (crear una cita en Google Calendar).
+ * Normaliza un mensaje entrante de WhatsApp (texto o respuesta interactiva
+ * de boton/lista) a una forma comun con la que trabaja el resto del modulo.
  */
-async function handleIncomingMessage(negocio, from, rawText) {
-  const text = (rawText || '').trim();
-  const session = getSession(negocio, from);
-  const normalized = normalize(text);
+function extractInput(message) {
+  if (message.type === 'text') {
+    return { kind: 'text', text: message.text?.body || '' };
+  }
+  if (message.type === 'interactive') {
+    const interactive = message.interactive || {};
+    if (interactive.type === 'button_reply') {
+      return {
+        kind: 'button',
+        id: interactive.button_reply?.id || '',
+        title: interactive.button_reply?.title || '',
+      };
+    }
+    if (interactive.type === 'list_reply') {
+      return {
+        kind: 'list',
+        id: interactive.list_reply?.id || '',
+        title: interactive.list_reply?.title || '',
+      };
+    }
+  }
+  return { kind: 'unknown' };
+}
 
-  if (session.state !== 'idle' && normalized === 'cancelar') {
+/**
+ * Procesa un mensaje entrante de un negocio concreto y devuelve la lista de
+ * mensajes (texto, lista o botones) a enviar de vuelta al cliente. Puede
+ * tener efectos secundarios (crear/cancelar una cita en Google Calendar).
+ */
+async function handleIncomingMessage(negocio, from, message) {
+  const input = extractInput(message);
+  const session = getSession(negocio, from);
+
+  if (session.state !== 'idle' && input.kind === 'text' && normalize(input.text) === 'cancelar') {
     resetSession(negocio, from);
-    return ['Reserva cancelada. Escribe "reservar" cuando quieras volver a intentarlo.'];
+    return [{ kind: 'text', text: 'Operación cancelada.' }, faq.welcomeMessage(negocio)];
   }
 
   switch (session.state) {
     case 'idle':
-      return handleIdle(negocio, from, text, normalized);
+      return handleIdle(negocio, from, input, session);
     case 'awaiting_service':
-      return handleAwaitingService(negocio, from, text, session);
+      return handleAwaitingService(negocio, from, input, session);
     case 'awaiting_date':
-      return handleAwaitingDate(negocio, from, text, session);
+      return handleAwaitingDate(negocio, from, input, session);
     case 'awaiting_slot':
-      return handleAwaitingSlot(negocio, from, text, session);
+      return handleAwaitingSlot(negocio, from, input, session);
     case 'awaiting_confirmation':
-      return handleAwaitingConfirmation(negocio, from, text, session);
+      return handleAwaitingConfirmation(negocio, from, input, session);
     case 'awaiting_cancel_choice':
-      return handleAwaitingCancelChoice(negocio, from, text, session);
+      return handleAwaitingCancelChoice(negocio, from, input, session);
     case 'awaiting_cancel_confirmation':
-      return handleAwaitingCancelConfirmation(negocio, from, text, session);
+      return handleAwaitingCancelConfirmation(negocio, from, input, session);
     default:
       resetSession(negocio, from);
-      return [faq.menuText(negocio)];
+      return [faq.welcomeMessage(negocio)];
   }
 }
 
-function isCancelIntent(normalized) {
-  return /cancelar|anular/.test(normalized);
+async function handleIdle(negocio, from, input, session) {
+  const isFirstContact = !session.seen;
+  session.seen = true;
+
+  if (input.kind === 'list' || input.kind === 'button') {
+    switch (input.id) {
+      case 'menu_horarios':
+        return [faq.horariosPreciosMessage(negocio)];
+      case 'menu_reservar':
+      case 'action_reservar':
+      case 'action_reservar_otra':
+        return startReservationFlow(negocio, session);
+      case 'menu_cancelar':
+      case 'action_cancelar_cita':
+        return startCancelFlow(negocio, from, session);
+      case 'action_menu':
+        return [faq.welcomeMessage(negocio)];
+      default:
+        break;
+    }
+  }
+
+  const normalized = input.kind === 'text' ? normalize(input.text) : '';
+  if (isCancelIntent(normalized)) return startCancelFlow(negocio, from, session);
+  if (/horario|precio/.test(normalized)) return [faq.horariosPreciosMessage(negocio)];
+  if (/reserv|cita|agendar/.test(normalized)) return startReservationFlow(negocio, session);
+  if (/^(menu|hola|inicio|buenas|empezar)\b/.test(normalized)) return [faq.welcomeMessage(negocio)];
+
+  return [isFirstContact ? faq.welcomeMessage(negocio) : faq.fallbackMessage(negocio)];
 }
 
-function handleIdle(negocio, from, text, normalized) {
-  if (isCancelIntent(normalized)) {
-    const session = getSession(negocio, from);
-    return startCancelFlow(negocio, from, session);
-  }
-  if (/horario/.test(normalized)) {
-    return [faq.horariosText(negocio)];
-  }
-  if (/servicio/.test(normalized)) {
-    return [faq.serviciosText(negocio)];
-  }
-  if (/precio|cuanto cuesta|coste/.test(normalized)) {
-    return [faq.preciosText(negocio)];
-  }
-  if (/reserv|cita|agendar/.test(normalized)) {
-    const session = getSession(negocio, from);
-    session.state = 'awaiting_service';
-    return [
-      '¡Genial! Estos son nuestros servicios:\n' +
-        negocio.servicios.map((s) => `- ${s.nombre} (${s.precio}€)`).join('\n') +
-        '\n\nEscribe el servicio que quieres reservar, o escribe "cancelar cita" si ' +
-        'quieres cancelar una cita que ya tengas.',
-    ];
-  }
-  return [faq.menuText(negocio)];
+function startReservationFlow(negocio, session) {
+  session.state = 'awaiting_service';
+  return [faq.serviceListMessage(negocio)];
 }
 
-function handleAwaitingService(negocio, from, text, session) {
-  const normalized = normalize(text);
-  if (isCancelIntent(normalized)) {
-    return startCancelFlow(negocio, from, session);
+function handleAwaitingService(negocio, from, input, session) {
+  if (input.kind === 'list' && input.id.startsWith('service_')) {
+    const key = input.id.slice('service_'.length);
+    const service = faq.findServiceByKey(negocio, key);
+    if (service) return proceedToDate(service, session);
   }
 
-  const service = faq.findService(negocio, text);
-  if (!service) {
-    return [
-      'No he reconocido ese servicio. Escribe: corte, barba o corte + barba ' +
-        '(o "cancelar" para salir).',
-    ];
+  if (input.kind === 'text') {
+    const normalized = normalize(input.text);
+    if (isCancelIntent(normalized)) return startCancelFlow(negocio, from, session);
+
+    const service = faq.findService(negocio, input.text);
+    if (service) return proceedToDate(service, session);
   }
 
+  return [faq.serviceListMessage(negocio)];
+}
+
+function proceedToDate(service, session) {
   session.service = service;
   session.state = 'awaiting_date';
-  return [
-    `Perfecto, ${service.nombre} (${service.precio}€). ` +
-      '¿Qué día quieres venir? Indica la fecha como DD/MM (Lunes a Viernes).',
-  ];
+  return [faq.askDateMessage()];
 }
 
-async function handleAwaitingDate(negocio, from, text, session) {
-  const day = parseDate(negocio, text);
+async function handleAwaitingDate(negocio, from, input, session) {
+  if (input.kind !== 'text') {
+    return [faq.askDateMessage()];
+  }
+
+  const day = parseDate(negocio, input.text);
   if (!day) {
-    return ['No he entendido la fecha. Usa el formato DD/MM, por ejemplo 15/09.'];
+    return [
+      {
+        kind: 'text',
+        text: 'No he entendido esa fecha. Prueba con "mañana", "el viernes" o una fecha como "10/09".',
+      },
+    ];
   }
 
   const now = DateTime.now().setZone(negocio.timezone).startOf('day');
   if (day < now) {
-    return ['Esa fecha ya ha pasado. Indica un día a partir de hoy.'];
+    return [{ kind: 'text', text: 'Esa fecha ya ha pasado. Indica un día a partir de hoy.' }];
   }
 
   const diasLaborables = negocio.horario.diasLaborables || [1, 2, 3, 4, 5];
   if (!diasLaborables.includes(day.weekday)) {
-    return ['Ese día no abrimos. Elige otro día, por favor.'];
+    return [{ kind: 'text', text: 'Ese día no abrimos. Elige otro día, por favor.' }];
   }
 
   let slots;
@@ -192,42 +248,49 @@ async function handleAwaitingDate(negocio, from, text, session) {
     slots = await googleCalendar.getAvailableSlots(negocio, day, session.service.duracionMinutos);
   } catch (err) {
     console.error('Error consultando Google Calendar:', err);
-    return ['Ha ocurrido un error consultando el calendario. Inténtalo de nuevo en un momento.'];
+    return [
+      { kind: 'text', text: 'Ha ocurrido un error consultando el calendario. Inténtalo de nuevo en un momento.' },
+    ];
   }
 
   if (slots.length === 0) {
-    return ['No quedan huecos libres ese día. Prueba con otra fecha (DD/MM).'];
+    return [{ kind: 'text', text: 'No quedan huecos libres ese día. Prueba con otra fecha.' }];
   }
 
   session.date = day;
   session.slots = slots;
   session.state = 'awaiting_slot';
-  return [
-    `Huecos disponibles el ${day.toFormat('dd/MM')} para ${session.service.nombre}:\n` +
-      formatSlotsList(slots) +
-      '\n\nResponde con el número o la hora del hueco que prefieras.',
-  ];
+  return [faq.slotsListMessage(day.toFormat('dd/MM'), slots)];
 }
 
-function handleAwaitingSlot(negocio, from, text, session) {
-  const slot = findChosenSlot(text, session.slots || []);
+function handleAwaitingSlot(negocio, from, input, session) {
+  let slot = null;
+
+  if (input.kind === 'list' && input.id.startsWith('slot_')) {
+    const idx = parseInt(input.id.slice('slot_'.length), 10);
+    slot = session.slots?.[idx] || null;
+  } else if (input.kind === 'text') {
+    slot = findChosenSlotByText(input.text, session.slots || []);
+  }
+
   if (!slot) {
-    return [
-      'No he reconocido ese hueco. Responde con el número de la lista o la hora, ' +
-        'por ejemplo "10:00".',
-    ];
+    return [faq.slotsListMessage(session.date.toFormat('dd/MM'), session.slots || [])];
   }
 
   session.chosenSlot = slot;
   session.state = 'awaiting_confirmation';
-  return [
-    `Confirmas la cita para ${session.service.nombre} (${session.service.precio}€) ` +
-      `el ${slot.toFormat('dd/MM')} a las ${slot.toFormat('HH:mm')}? Responde sí o no.`,
-  ];
+  return [faq.confirmBookingMessage(session)];
 }
 
-async function handleAwaitingConfirmation(negocio, from, text, session) {
-  if (isAffirmative(text)) {
+async function handleAwaitingConfirmation(negocio, from, input, session) {
+  const affirmative =
+    (input.kind === 'button' && input.id === 'confirm_yes') ||
+    (input.kind === 'text' && isAffirmative(input.text));
+  const negative =
+    (input.kind === 'button' && input.id === 'confirm_no') ||
+    (input.kind === 'text' && isNegative(input.text));
+
+  if (affirmative) {
     const start = session.chosenSlot;
     const end = start.plus({ minutes: session.service.duracionMinutos });
 
@@ -240,103 +303,87 @@ async function handleAwaitingConfirmation(negocio, from, text, session) {
       });
     } catch (err) {
       console.error('Error creando el evento en Google Calendar:', err);
-      return ['No he podido guardar la cita en el calendario. Inténtalo de nuevo más tarde.'];
+      return [{ kind: 'text', text: 'No he podido guardar la cita en el calendario. Inténtalo de nuevo más tarde.' }];
     }
 
-    const confirmationMessage =
-      `Tu cita ha quedado confirmada ✅\n` +
-      `Servicio: ${session.service.nombre}\n` +
-      `Fecha: ${start.toFormat('dd/MM/yyyy')}\n` +
-      `Hora: ${start.toFormat('HH:mm')}\n` +
-      `Precio: ${session.service.precio}€\n\n` +
-      '¡Te esperamos!';
-
+    const message = faq.bookingConfirmedMessage(negocio, { service: session.service, start });
     resetSession(negocio, from);
-    return [confirmationMessage];
+    return [message];
   }
 
-  if (isNegative(text)) {
+  if (negative) {
     resetSession(negocio, from);
-    return ['De acuerdo, he cancelado la reserva. Escribe "reservar" si quieres empezar de nuevo.'];
+    return [{ kind: 'text', text: 'De acuerdo, no se ha realizado la reserva.' }, faq.welcomeMessage(negocio)];
   }
 
-  return ['Responde "sí" para confirmar la cita o "no" para cancelarla.'];
+  return [faq.confirmBookingMessage(session)];
 }
 
-function eventLabel(event) {
-  const serviceName = (event.summary || 'Cita').split(' - Cliente')[0];
-  return `${serviceName} el ${event.start.toFormat('dd/MM')} a las ${event.start.toFormat('HH:mm')}`;
-}
-
-/**
- * Busca las citas futuras del cliente y arranca el flujo de cancelacion:
- * pide confirmacion directa si hay una sola, o que elija de una lista si
- * hay varias.
- */
 async function startCancelFlow(negocio, from, session) {
   let events;
   try {
     events = await googleCalendar.findUpcomingEvents(negocio, from);
   } catch (err) {
     console.error('Error consultando citas para cancelar:', err);
-    return ['Ha ocurrido un error consultando tus citas. Inténtalo de nuevo en un momento.'];
+    return [{ kind: 'text', text: 'Ha ocurrido un error consultando tus citas. Inténtalo de nuevo en un momento.' }];
   }
 
   if (events.length === 0) {
     resetSession(negocio, from);
-    return [
-      'No hemos encontrado ninguna cita reservada a tu nombre. ' +
-        'Escribe "reservar" si quieres pedir una cita.',
-    ];
-  }
-
-  if (events.length === 1) {
-    session.cancelTarget = events[0];
-    session.state = 'awaiting_cancel_confirmation';
-    return [`¿Confirmas que quieres cancelar tu cita de ${eventLabel(events[0])}? Responde sí o no.`];
+    return [faq.noAppointmentsMessage()];
   }
 
   session.cancelCandidates = events;
   session.state = 'awaiting_cancel_choice';
-  return [
-    'Tienes varias citas próximas:\n' +
-      events.map((e, i) => `${i + 1}. ${eventLabel(e)}`).join('\n') +
-      '\n\nResponde con el número de la cita que quieres cancelar (o "cancelar" para salir).',
-  ];
+  return [faq.appointmentsListMessage(events)];
 }
 
-function handleAwaitingCancelChoice(negocio, from, text, session) {
-  const index = parseInt(text.trim(), 10);
-  const chosen = session.cancelCandidates?.[index - 1];
+function handleAwaitingCancelChoice(negocio, from, input, session) {
+  let chosen = null;
+
+  if (input.kind === 'list' && input.id.startsWith('cancel_')) {
+    const idx = parseInt(input.id.slice('cancel_'.length), 10);
+    chosen = session.cancelCandidates?.[idx] || null;
+  } else if (input.kind === 'text') {
+    const idx = parseInt(input.text.trim(), 10);
+    chosen = session.cancelCandidates?.[idx - 1] || null;
+  }
+
   if (!chosen) {
-    return ['No he reconocido esa cita. Responde con el número de la lista, o "cancelar" para salir.'];
+    return [faq.appointmentsListMessage(session.cancelCandidates || [])];
   }
 
   session.cancelTarget = chosen;
   session.state = 'awaiting_cancel_confirmation';
-  return [`¿Confirmas que quieres cancelar tu cita de ${eventLabel(chosen)}? Responde sí o no.`];
+  return [faq.cancelConfirmMessage(chosen)];
 }
 
-async function handleAwaitingCancelConfirmation(negocio, from, text, session) {
-  if (isAffirmative(text)) {
+async function handleAwaitingCancelConfirmation(negocio, from, input, session) {
+  const affirmative =
+    (input.kind === 'button' && input.id === 'cancel_confirm_yes') ||
+    (input.kind === 'text' && isAffirmative(input.text));
+  const negative =
+    (input.kind === 'button' && input.id === 'cancel_confirm_no') ||
+    (input.kind === 'text' && isNegative(input.text));
+
+  if (affirmative) {
     try {
       await googleCalendar.cancelEvent(negocio, session.cancelTarget.id);
     } catch (err) {
       console.error('Error cancelando la cita en Google Calendar:', err);
-      return ['No he podido cancelar la cita. Inténtalo de nuevo más tarde.'];
+      return [{ kind: 'text', text: 'No he podido cancelar la cita. Inténtalo de nuevo más tarde.' }];
     }
 
-    const label = eventLabel(session.cancelTarget);
     resetSession(negocio, from);
-    return [`Tu cita de ${label} ha sido cancelada. ¡Esperamos verte pronto!`];
+    return [faq.cancelConfirmedMessage(negocio)];
   }
 
-  if (isNegative(text)) {
+  if (negative) {
     resetSession(negocio, from);
-    return ['De acuerdo, no se ha cancelado nada.'];
+    return [{ kind: 'text', text: 'De acuerdo, no se ha cancelado nada.' }, faq.welcomeMessage(negocio)];
   }
 
-  return ['Responde "sí" para cancelar la cita o "no" para dejarla como está.'];
+  return [faq.cancelConfirmMessage(session.cancelTarget)];
 }
 
 module.exports = { handleIncomingMessage };

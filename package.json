@@ -1,0 +1,25 @@
+{
+  "name": "bot-barberia",
+  "version": "1.0.0",
+  "description": "Bot de WhatsApp para gestionar FAQs y citas de una barberia, integrado con WhatsApp Cloud API y Google Calendar",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "google-auth-library": "^9.15.0",
+    "googleapis": "^144.0.0",
+    "luxon": "^3.5.0"
+  },
+  "devDependencies": {
+    "localtunnel": "^2.0.2"
+  }
+}

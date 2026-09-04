@@ -1,0 +1,24 @@
+{
+  "negocios": [
+    {
+      "id": "barber-paris",
+      "nombre": "Barber Paris",
+      "phoneNumberId": "1270395019495649",
+      "timezone": "Europe/Madrid",
+      "horario": {
+        "diasLaborables": [1, 2, 3, 4, 5],
+        "horaInicio": 9,
+        "horaFin": 17
+      },
+      "servicios": [
+        { "key": "corte", "nombre": "Corte de pelo", "precio": 15, "duracionMinutos": 30 },
+        { "key": "barba", "nombre": "Barba", "precio": 10, "duracionMinutos": 20 },
+        { "key": "corte_barba", "nombre": "Corte + barba", "precio": 22, "duracionMinutos": 45 }
+      ],
+      "googleCalendar": {
+        "calendarId": "416c7c3f1d1fa4c82c9bf87ef6400bb3ae6a1cc50342613c6ca0b841904deeb7@group.calendar.google.com",
+        "calendarName": "Citas BotBarberia"
+      }
+    }
+  ]
+}

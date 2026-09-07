@@ -204,6 +204,7 @@ const catalogs = {
     noAppointmentsBody: 'No encuentro ninguna cita a tu nombre 🤔',
 
     operationCancelledText: 'Operación cancelada.',
+    restartingChoiceText: 'Vale, empecemos de nuevo eligiendo el servicio 🙌',
     languageSavedText: 'Perfecto, a partir de ahora te hablaré en castellano 🇪🇸',
   },
 
@@ -296,6 +297,7 @@ const catalogs = {
     noAppointmentsBody: 'No trobo cap cita al teu nom 🤔',
 
     operationCancelledText: 'Operació cancel·lada.',
+    restartingChoiceText: "D'acord, comencem de nou triant el servei 🙌",
     languageSavedText: "Perfecte, a partir d'ara et parlaré en català 🏴󠁥󠁳󠁣󠁴󠁿",
   },
 
@@ -388,6 +390,7 @@ const catalogs = {
     noAppointmentsBody: "I can't find any appointment under your name 🤔",
 
     operationCancelledText: 'Operation cancelled.',
+    restartingChoiceText: "Sure, let's start again by choosing the service 🙌",
     languageSavedText: "Great, I'll speak to you in English from now on 🇬🇧",
   },
 };

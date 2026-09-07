@@ -207,6 +207,21 @@ async function handleIncomingMessage(negocio, from, message) {
     ];
   }
 
+  // Intencion de "cambiar" algo de la reserva (servicio, dia, hora...) en
+  // cualquier paso del flujo de reserva: en vez de intentar adivinar que
+  // parte concreta quiere cambiar, reiniciamos la eleccion desde el
+  // servicio (mas simple y predecible que quedarse repitiendo el mismo
+  // mensaje sin reconocer la peticion).
+  const RESERVATION_STATES = ['awaiting_service', 'awaiting_date', 'awaiting_slot', 'awaiting_confirmation'];
+  if (
+    input.kind === 'text' &&
+    RESERVATION_STATES.includes(session.state) &&
+    /cambi|canvi|modificar|rectificar|change/.test(normalize(input.text))
+  ) {
+    const restartMsg = { kind: 'text', text: i18n.t(session.lang).restartingChoiceText };
+    return [restartMsg, ...startReservationFlow(negocio, session)];
+  }
+
   switch (session.state) {
     case 'idle':
       return handleIdle(negocio, from, input, session);

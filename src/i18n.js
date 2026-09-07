@@ -19,54 +19,81 @@ function pricePrefix(precio, onRequestText) {
   return precio != null ? `€${precio}` : onRequestText;
 }
 
+/**
+ * Icono de un negocio para un "rol" dado (p.ej. "marca" o "servicio").
+ * negocio.emojis en negocios.json puede sobreescribirlo; si no, se usa el
+ * icono por defecto (el de barberia, para no cambiar el aspecto de los
+ * negocios que ya existian).
+ */
+function emoji(negocio, role, fallback) {
+  return (negocio.emojis && negocio.emojis[role]) || fallback;
+}
+
 const WEEKDAY_DISPLAY = {
   es: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
   ca: ['Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres', 'Dissabte', 'Diumenge'],
   en: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
 };
 const DAY_RANGE_CONNECTOR = { es: 'a', ca: 'a', en: 'to' };
+const CLOSED_LABEL = { es: 'Cerrado', ca: 'Tancat', en: 'Closed' };
 
 /**
- * Devuelve, en orden de lunes a domingo, el horario de cada dia abierto.
- * Soporta tanto el formato antiguo (horaInicio/horaFin + diasLaborables,
- * mismo horario todos los dias) como negocio.horario.horarioPorDia
- * ({"1": {horaInicio,horaFin,...}, ...}, dias 1=lunes..7=domingo, los dias
- * ausentes se consideran cerrados).
+ * Devuelve, para cada dia de lunes(1) a domingo(7), si el negocio abre ese
+ * dia y con que horario. Soporta tanto el formato antiguo (horaInicio/
+ * horaFin + diasLaborables, mismo horario todos los dias abiertos) como
+ * negocio.horario.horarioPorDia ({"1": {horaInicio,horaFin,...}, ...}; los
+ * dias ausentes de horarioPorDia se consideran cerrados).
  */
 function scheduleEntries(negocio) {
   const { horario } = negocio;
-  if (horario.horarioPorDia) {
-    return Object.entries(horario.horarioPorDia)
-      .map(([day, h]) => ({ day: parseInt(day, 10), ...h }))
-      .sort((a, b) => a.day - b.day);
+  const perDay = horario.horarioPorDia;
+  const diasLaborables = horario.diasLaborables || [1, 2, 3, 4, 5];
+
+  const entries = [];
+  for (let day = 1; day <= 7; day++) {
+    if (perDay) {
+      const h = perDay[day];
+      entries.push(h ? { day, open: true, ...h } : { day, open: false });
+    } else if (diasLaborables.includes(day)) {
+      entries.push({
+        day,
+        open: true,
+        horaInicio: horario.horaInicio,
+        horaFin: horario.horaFin,
+        horaInicioMinuto: horario.horaInicioMinuto,
+        horaFinMinuto: horario.horaFinMinuto,
+      });
+    } else {
+      entries.push({ day, open: false });
+    }
   }
-  const dias = horario.diasLaborables || [1, 2, 3, 4, 5];
-  return dias.map((day) => ({
-    day,
-    horaInicio: horario.horaInicio,
-    horaFin: horario.horaFin,
-    horaInicioMinuto: horario.horaInicioMinuto,
-    horaFinMinuto: horario.horaFinMinuto,
-  }));
+  return entries;
 }
 
-/** Texto multilinea con el horario agrupando dias consecutivos con el mismo horario. */
+/**
+ * Texto multilinea con el horario completo (lunes a domingo), agrupando
+ * dias consecutivos con el mismo horario (o consecutivos cerrados) en una
+ * sola linea. Los dias cerrados se muestran explicitamente.
+ */
 function formatSchedule(negocio, lang) {
   const entries = scheduleEntries(negocio);
   const names = WEEKDAY_DISPLAY[lang];
   const connector = DAY_RANGE_CONNECTOR[lang];
+  const closedLabel = CLOSED_LABEL[lang];
 
   const groups = [];
   for (const entry of entries) {
     const last = groups[groups.length - 1];
-    const sameHours =
+    const sameGroup =
       last &&
-      last.horaInicio === entry.horaInicio &&
-      last.horaFin === entry.horaFin &&
-      (last.horaInicioMinuto || 0) === (entry.horaInicioMinuto || 0) &&
-      (last.horaFinMinuto || 0) === (entry.horaFinMinuto || 0) &&
-      entry.day === last.lastDay + 1;
-    if (sameHours) {
+      last.open === entry.open &&
+      entry.day === last.lastDay + 1 &&
+      (!entry.open ||
+        (last.horaInicio === entry.horaInicio &&
+          last.horaFin === entry.horaFin &&
+          (last.horaInicioMinuto || 0) === (entry.horaInicioMinuto || 0) &&
+          (last.horaFinMinuto || 0) === (entry.horaFinMinuto || 0)));
+    if (sameGroup) {
       last.lastDay = entry.day;
     } else {
       groups.push({ ...entry, firstDay: entry.day, lastDay: entry.day });
@@ -79,7 +106,10 @@ function formatSchedule(negocio, lang) {
         g.firstDay === g.lastDay
           ? names[g.firstDay - 1]
           : `${names[g.firstDay - 1]} ${connector} ${names[g.lastDay - 1]}`;
-      return `${dayLabel}: ${formatHour(g.horaInicio, g.horaInicioMinuto)}-${formatHour(g.horaFin, g.horaFinMinuto)}`;
+      const hoursLabel = g.open
+        ? `${formatHour(g.horaInicio, g.horaInicioMinuto)}-${formatHour(g.horaFin, g.horaFinMinuto)}`
+        : closedLabel;
+      return `${dayLabel}: ${hoursLabel}`;
     })
     .join('\n');
 }
@@ -91,7 +121,7 @@ const catalogs = {
     weekdayWords: ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'],
 
     welcomeBody: (negocio) =>
-      `¡Hola! 👋 Bienvenido/a a ${negocio.nombre} 💈\n` +
+      `¡Hola! 👋 Bienvenido/a a ${negocio.nombre} ${emoji(negocio, 'marca', '💈')}\n` +
       'Soy el asistente virtual y estoy aquí para ayudarte. ¿Qué te gustaría hacer?',
     welcomeButtonText: 'Ver opciones',
     welcomeSectionTitle: 'Menú principal',
@@ -107,7 +137,7 @@ const catalogs = {
         .join('\n');
       return (
         `🕒 Nuestro horario:\n${formatSchedule(negocio, 'es')}\n\n` +
-        `✂️ Nuestros servicios:\n${servicios}`
+        `${emoji(negocio, 'servicio', '✂️')} Nuestros servicios:\n${servicios}`
       );
     },
     btnReservarCita: '📅 Reservar cita',
@@ -130,9 +160,9 @@ const catalogs = {
     slotsListButtonText: 'Ver horarios',
     slotsSectionTitle: 'Horarios libres',
 
-    confirmBookingBody: (service, slot) =>
+    confirmBookingBody: (negocio, service, slot) =>
       'Vale, resumen de tu cita 📋\n' +
-      `✂️ Servicio: ${service.nombre}\n` +
+      `${emoji(negocio, 'servicio', '✂️')} Servicio: ${service.nombre}\n` +
       `📅 Día: ${slot.toFormat('dd/MM/yyyy')}\n` +
       `⏰ Hora: ${slot.toFormat('HH:mm')}\n` +
       `💶 Precio: ${priceSuffix(service.precio, 'a consultar en el momento de la reserva')}\n\n` +
@@ -142,8 +172,8 @@ const catalogs = {
 
     bookingConfirmedBody: (negocio, service, start) =>
       '¡Todo listo! ✅ Tu cita está confirmada:\n' +
-      `✂️ ${service.nombre} — 📅 ${start.toFormat('dd/MM/yyyy')} a las ⏰ ${start.toFormat('HH:mm')}\n\n` +
-      `Te esperamos en ${negocio.nombre} 💈 ¡Gracias por confiar en nosotros!`,
+      `${emoji(negocio, 'servicio', '✂️')} ${service.nombre} — 📅 ${start.toFormat('dd/MM/yyyy')} a las ⏰ ${start.toFormat('HH:mm')}\n\n` +
+      `Te esperamos en ${negocio.nombre} ${emoji(negocio, 'marca', '💈')} ¡Gracias por confiar en nosotros!`,
     btnCancelarCita: '❌ Cancelar cita',
     bookingSaveErrorText: 'No he podido guardar la cita en el calendario. Inténtalo de nuevo más tarde.',
     bookingAbortedText: 'De acuerdo, no se ha realizado la reserva.',
@@ -154,14 +184,15 @@ const catalogs = {
     appointmentsSectionTitle: 'Tus citas',
     fetchAppointmentsErrorText: 'Ha ocurrido un error consultando tus citas. Inténtalo de nuevo en un momento.',
 
-    cancelConfirmBody: (eventName, event) =>
+    cancelConfirmBody: (negocio, eventName, event) =>
       '¿Seguro que quieres cancelar esta cita? 🥺\n' +
-      `✂️ ${eventName} — ${event.start.toFormat('dd/MM/yyyy')} a las ${event.start.toFormat('HH:mm')}`,
+      `${emoji(negocio, 'servicio', '✂️')} ${eventName} — ${event.start.toFormat('dd/MM/yyyy')} a las ${event.start.toFormat('HH:mm')}`,
     btnCancelYes: '✅ Sí, cancelar',
     btnCancelNo: '❌ No, mantener',
     cancelSaveErrorText: 'No he podido cancelar la cita. Inténtalo de nuevo más tarde.',
 
-    cancelConfirmedBody: (negocio) => `Cita cancelada ❌ Esperamos verte pronto por ${negocio.nombre} 💈`,
+    cancelConfirmedBody: (negocio) =>
+      `Cita cancelada ❌ Esperamos verte pronto por ${negocio.nombre} ${emoji(negocio, 'marca', '💈')}`,
     btnReservarOtra: '📅 Reservar otra',
     cancelAbortedText: 'De acuerdo, no se ha cancelado nada.',
 
@@ -177,7 +208,7 @@ const catalogs = {
     weekdayWords: ['dilluns', 'dimarts', 'dimecres', 'dijous', 'divendres', 'dissabte', 'diumenge'],
 
     welcomeBody: (negocio) =>
-      `Hola! 👋 Benvingut/da a ${negocio.nombre} 💈\n` +
+      `Hola! 👋 Benvingut/da a ${negocio.nombre} ${emoji(negocio, 'marca', '💈')}\n` +
       "Sóc l'assistent virtual i estic aquí per ajudar-te. Què t'agradaria fer?",
     welcomeButtonText: 'Veure opcions',
     welcomeSectionTitle: 'Menú principal',
@@ -193,7 +224,7 @@ const catalogs = {
         .join('\n');
       return (
         `🕒 El nostre horari:\n${formatSchedule(negocio, 'ca')}\n\n` +
-        `✂️ Els nostres serveis:\n${servicios}`
+        `${emoji(negocio, 'servicio', '✂️')} Els nostres serveis:\n${servicios}`
       );
     },
     btnReservarCita: '📅 Reservar cita',
@@ -216,9 +247,9 @@ const catalogs = {
     slotsListButtonText: 'Veure horaris',
     slotsSectionTitle: 'Horaris lliures',
 
-    confirmBookingBody: (service, slot) =>
+    confirmBookingBody: (negocio, service, slot) =>
       'Molt bé, resum de la teva cita 📋\n' +
-      `✂️ Servei: ${service.nombre}\n` +
+      `${emoji(negocio, 'servicio', '✂️')} Servei: ${service.nombre}\n` +
       `📅 Dia: ${slot.toFormat('dd/MM/yyyy')}\n` +
       `⏰ Hora: ${slot.toFormat('HH:mm')}\n` +
       `💶 Preu: ${priceSuffix(service.precio, 'a consultar en el moment de la reserva')}\n\n` +
@@ -228,8 +259,8 @@ const catalogs = {
 
     bookingConfirmedBody: (negocio, service, start) =>
       'Tot llest! ✅ La teva cita està confirmada:\n' +
-      `✂️ ${service.nombre} — 📅 ${start.toFormat('dd/MM/yyyy')} a les ⏰ ${start.toFormat('HH:mm')}\n\n` +
-      `T'esperem a ${negocio.nombre} 💈 Gràcies per confiar en nosaltres!`,
+      `${emoji(negocio, 'servicio', '✂️')} ${service.nombre} — 📅 ${start.toFormat('dd/MM/yyyy')} a les ⏰ ${start.toFormat('HH:mm')}\n\n` +
+      `T'esperem a ${negocio.nombre} ${emoji(negocio, 'marca', '💈')} Gràcies per confiar en nosaltres!`,
     btnCancelarCita: '❌ Cancel·lar cita',
     bookingSaveErrorText: 'No he pogut desar la cita al calendari. Torna-ho a provar més tard.',
     bookingAbortedText: "D'acord, no s'ha fet la reserva.",
@@ -240,14 +271,15 @@ const catalogs = {
     appointmentsSectionTitle: 'Les teves cites',
     fetchAppointmentsErrorText: "Hi ha hagut un error consultant les teves cites. Torna-ho a provar d'aquí un moment.",
 
-    cancelConfirmBody: (eventName, event) =>
+    cancelConfirmBody: (negocio, eventName, event) =>
       'Segur que vols cancel·lar aquesta cita? 🥺\n' +
-      `✂️ ${eventName} — ${event.start.toFormat('dd/MM/yyyy')} a les ${event.start.toFormat('HH:mm')}`,
+      `${emoji(negocio, 'servicio', '✂️')} ${eventName} — ${event.start.toFormat('dd/MM/yyyy')} a les ${event.start.toFormat('HH:mm')}`,
     btnCancelYes: '✅ Sí, cancel·lar',
     btnCancelNo: '❌ No, mantenir',
     cancelSaveErrorText: 'No he pogut cancel·lar la cita. Torna-ho a provar més tard.',
 
-    cancelConfirmedBody: (negocio) => `Cita cancel·lada ❌ Esperem veure't aviat per ${negocio.nombre} 💈`,
+    cancelConfirmedBody: (negocio) =>
+      `Cita cancel·lada ❌ Esperem veure't aviat per ${negocio.nombre} ${emoji(negocio, 'marca', '💈')}`,
     btnReservarOtra: '📅 Reservar una altra',
     cancelAbortedText: "D'acord, no s'ha cancel·lat res.",
 
@@ -263,7 +295,7 @@ const catalogs = {
     weekdayWords: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
 
     welcomeBody: (negocio) =>
-      `Hi! 👋 Welcome to ${negocio.nombre} 💈\n` +
+      `Hi! 👋 Welcome to ${negocio.nombre} ${emoji(negocio, 'marca', '💈')}\n` +
       "I'm the virtual assistant and I'm here to help. What would you like to do?",
     welcomeButtonText: 'View options',
     welcomeSectionTitle: 'Main menu',
@@ -279,7 +311,7 @@ const catalogs = {
         .join('\n');
       return (
         `🕒 Our hours:\n${formatSchedule(negocio, 'en')}\n\n` +
-        `✂️ Our services:\n${servicios}`
+        `${emoji(negocio, 'servicio', '✂️')} Our services:\n${servicios}`
       );
     },
     btnReservarCita: '📅 Book appointment',
@@ -302,9 +334,9 @@ const catalogs = {
     slotsListButtonText: 'View times',
     slotsSectionTitle: 'Available times',
 
-    confirmBookingBody: (service, slot) =>
+    confirmBookingBody: (negocio, service, slot) =>
       "Ok, here's a summary of your appointment 📋\n" +
-      `✂️ Service: ${service.nombre}\n` +
+      `${emoji(negocio, 'servicio', '✂️')} Service: ${service.nombre}\n` +
       `📅 Day: ${slot.toFormat('dd/MM/yyyy')}\n` +
       `⏰ Time: ${slot.toFormat('HH:mm')}\n` +
       `💶 Price: ${pricePrefix(service.precio, 'to be confirmed at booking')}\n\n` +
@@ -314,8 +346,8 @@ const catalogs = {
 
     bookingConfirmedBody: (negocio, service, start) =>
       'All set! ✅ Your appointment is confirmed:\n' +
-      `✂️ ${service.nombre} — 📅 ${start.toFormat('dd/MM/yyyy')} at ⏰ ${start.toFormat('HH:mm')}\n\n` +
-      `See you at ${negocio.nombre} 💈 Thanks for trusting us!`,
+      `${emoji(negocio, 'servicio', '✂️')} ${service.nombre} — 📅 ${start.toFormat('dd/MM/yyyy')} at ⏰ ${start.toFormat('HH:mm')}\n\n` +
+      `See you at ${negocio.nombre} ${emoji(negocio, 'marca', '💈')} Thanks for trusting us!`,
     btnCancelarCita: '❌ Cancel appointment',
     bookingSaveErrorText: "I couldn't save the appointment to the calendar. Please try again later.",
     bookingAbortedText: "Okay, the booking wasn't made.",
@@ -326,14 +358,15 @@ const catalogs = {
     appointmentsSectionTitle: 'Your appointments',
     fetchAppointmentsErrorText: 'There was an error checking your appointments. Please try again in a moment.',
 
-    cancelConfirmBody: (eventName, event) =>
+    cancelConfirmBody: (negocio, eventName, event) =>
       'Are you sure you want to cancel this appointment? 🥺\n' +
-      `✂️ ${eventName} — ${event.start.toFormat('dd/MM/yyyy')} at ${event.start.toFormat('HH:mm')}`,
+      `${emoji(negocio, 'servicio', '✂️')} ${eventName} — ${event.start.toFormat('dd/MM/yyyy')} at ${event.start.toFormat('HH:mm')}`,
     btnCancelYes: '✅ Yes, cancel',
     btnCancelNo: '❌ No, keep it',
     cancelSaveErrorText: "I couldn't cancel the appointment. Please try again later.",
 
-    cancelConfirmedBody: (negocio) => `Appointment cancelled ❌ Hope to see you soon at ${negocio.nombre} 💈`,
+    cancelConfirmedBody: (negocio) =>
+      `Appointment cancelled ❌ Hope to see you soon at ${negocio.nombre} ${emoji(negocio, 'marca', '💈')}`,
     btnReservarOtra: '📅 Book another',
     cancelAbortedText: 'Okay, nothing was cancelled.',
 

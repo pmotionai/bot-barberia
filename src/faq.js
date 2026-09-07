@@ -139,12 +139,12 @@ function slotsListMessage(dateLabel, slots, lang) {
   };
 }
 
-function confirmBookingMessage(session, lang) {
+function confirmBookingMessage(negocio, session, lang) {
   const s = i18n.t(lang);
   const { service, chosenSlot } = session;
   return {
     kind: 'buttons',
-    body: s.confirmBookingBody(service, chosenSlot),
+    body: s.confirmBookingBody(negocio, service, chosenSlot),
     buttons: [
       { id: 'confirm_yes', title: truncate(s.btnConfirmYes, BUTTON_TITLE_MAX) },
       { id: 'confirm_no', title: truncate(s.btnConfirmNo, BUTTON_TITLE_MAX) },
@@ -188,11 +188,11 @@ function appointmentsListMessage(events, lang) {
   };
 }
 
-function cancelConfirmMessage(event, lang) {
+function cancelConfirmMessage(negocio, event, lang) {
   const s = i18n.t(lang);
   return {
     kind: 'buttons',
-    body: s.cancelConfirmBody(eventServiceName(event), event),
+    body: s.cancelConfirmBody(negocio, eventServiceName(event), event),
     buttons: [
       { id: 'cancel_confirm_yes', title: truncate(s.btnCancelYes, BUTTON_TITLE_MAX) },
       { id: 'cancel_confirm_no', title: truncate(s.btnCancelNo, BUTTON_TITLE_MAX) },

@@ -144,11 +144,11 @@ function repromptForState(negocio, session) {
     case 'awaiting_slot':
       return [faq.slotsListMessage(session.date.toFormat('dd/MM'), session.slots || [], lang)];
     case 'awaiting_confirmation':
-      return [faq.confirmBookingMessage(session, lang)];
+      return [faq.confirmBookingMessage(negocio, session, lang)];
     case 'awaiting_cancel_choice':
       return [faq.appointmentsListMessage(session.cancelCandidates || [], lang)];
     case 'awaiting_cancel_confirmation':
-      return [faq.cancelConfirmMessage(session.cancelTarget, lang)];
+      return [faq.cancelConfirmMessage(negocio, session.cancelTarget, lang)];
     case 'idle':
     default:
       return [faq.welcomeMessage(negocio, lang)];
@@ -328,7 +328,7 @@ function handleAwaitingSlot(negocio, from, input, session) {
 
   session.chosenSlot = slot;
   session.state = 'awaiting_confirmation';
-  return [faq.confirmBookingMessage(session, session.lang)];
+  return [faq.confirmBookingMessage(negocio, session, session.lang)];
 }
 
 async function handleAwaitingConfirmation(negocio, from, input, session) {
@@ -367,7 +367,7 @@ async function handleAwaitingConfirmation(negocio, from, input, session) {
     return [{ kind: 'text', text: s.bookingAbortedText }, faq.welcomeMessage(negocio, lang)];
   }
 
-  return [faq.confirmBookingMessage(session, lang)];
+  return [faq.confirmBookingMessage(negocio, session, lang)];
 }
 
 async function startCancelFlow(negocio, from, session) {
@@ -409,7 +409,7 @@ function handleAwaitingCancelChoice(negocio, from, input, session) {
 
   session.cancelTarget = chosen;
   session.state = 'awaiting_cancel_confirmation';
-  return [faq.cancelConfirmMessage(chosen, session.lang)];
+  return [faq.cancelConfirmMessage(negocio, chosen, session.lang)];
 }
 
 async function handleAwaitingCancelConfirmation(negocio, from, input, session) {
@@ -439,7 +439,7 @@ async function handleAwaitingCancelConfirmation(negocio, from, input, session) {
     return [{ kind: 'text', text: s.cancelAbortedText }, faq.welcomeMessage(negocio, lang)];
   }
 
-  return [faq.cancelConfirmMessage(session.cancelTarget, lang)];
+  return [faq.cancelConfirmMessage(negocio, session.cancelTarget, lang)];
 }
 
 module.exports = { handleIncomingMessage };

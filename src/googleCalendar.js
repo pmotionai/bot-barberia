@@ -162,13 +162,16 @@ async function findUpcomingEvents(negocio, from) {
   const now = DateTime.now().setZone(negocio.timezone);
   const marker = `Cliente: ${from}.`;
 
+  // No usamos el parametro "q" (busqueda por texto de Google) porque su
+  // indice puede tardar en reflejar eventos recien creados, dando falsos
+  // negativos justo despues de reservar. Traemos todos los eventos del
+  // rango de fechas y filtramos nosotros mismos por el marcador exacto.
   const { data } = await calendar.events.list({
     calendarId,
     timeMin: now.toISO(),
     timeMax: now.plus({ days: 90 }).toISO(),
     singleEvents: true,
     orderBy: 'startTime',
-    q: from,
   });
 
   return (data.items || [])

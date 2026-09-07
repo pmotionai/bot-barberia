@@ -34,6 +34,10 @@
           "6": { "horaInicio": 9, "horaFin": 14 }
         }
       },
+      "emojis": {
+        "marca": "💅",
+        "servicio": "💇‍♀️"
+      },
       "servicios": [
         { "key": "color_raiz", "nombre": "Color raíz", "precio": 24, "duracionMinutos": 60 },
         { "key": "balayage_caramelo", "nombre": "Balayage caramelo", "precio": 95, "duracionMinutos": 120 },

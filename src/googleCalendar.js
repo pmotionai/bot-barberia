@@ -84,12 +84,18 @@ async function getCalendarId(negocio) {
  * @param {number} durationMinutes - duracion del servicio
  * @returns {Promise<DateTime[]>} lista de horas de inicio disponibles
  */
+/**
+ * Devuelve el horario (horaInicio/horaFin/...) de un negocio para el dia de
+ * la semana concreto de `day`, o null si ese dia esta cerrado.
+ */
+function getDayHours(negocio, day) {
+  return negocio.horario.horarioPorDia ? negocio.horario.horarioPorDia[day.weekday] || null : negocio.horario;
+}
+
 async function getAvailableSlots(negocio, day, durationMinutes) {
   const calendar = await getCalendarClient();
   const calendarId = await getCalendarId(negocio);
-  const dayConfig = negocio.horario.horarioPorDia
-    ? negocio.horario.horarioPorDia[day.weekday]
-    : negocio.horario;
+  const dayConfig = getDayHours(negocio, day);
   if (!dayConfig) {
     throw new Error(`El negocio "${negocio.nombre}" no tiene horario configurado para ese día.`);
   }
@@ -193,6 +199,7 @@ async function cancelEvent(negocio, eventId) {
 }
 
 module.exports = {
+  getDayHours,
   getAvailableSlots,
   createEvent,
   findUpcomingEvents,

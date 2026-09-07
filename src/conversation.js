@@ -302,6 +302,13 @@ async function handleAwaitingDate(negocio, from, input, session) {
     return [{ kind: 'text', text: s.dayClosedText }];
   }
 
+  const dayHours = googleCalendar.getDayHours(negocio, day);
+  const windowMinutes =
+    dayHours.horaFin * 60 + (dayHours.horaFinMinuto || 0) - (dayHours.horaInicio * 60 + (dayHours.horaInicioMinuto || 0));
+  if (session.service.duracionMinutos > windowMinutes) {
+    return [{ kind: 'text', text: s.serviceTooLongText(session.service, dayHours) }];
+  }
+
   let slots;
   try {
     slots = await googleCalendar.getAvailableSlots(negocio, day, session.service.duracionMinutos);

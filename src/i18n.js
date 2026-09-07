@@ -154,6 +154,11 @@ const catalogs = {
     dayClosedText: 'Ese día no abrimos. Elige otro día, por favor.',
     calendarErrorText: 'Ha ocurrido un error consultando el calendario. Inténtalo de nuevo en un momento.',
     noSlotsText: 'No quedan huecos libres ese día. Prueba con otra fecha.',
+    serviceTooLongText: (service, horario) =>
+      `Lo sentimos 🙏 No podemos ofrecerte "${service.nombre}" ese día: tiene una duración de ` +
+      `${service.duracionMinutos} min y supera nuestro horario de apertura de ese día ` +
+      `(${formatHour(horario.horaInicio, horario.horaInicioMinuto)}-${formatHour(horario.horaFin, horario.horaFinMinuto)}). ` +
+      'Por favor, elige otro día.',
 
     slotsListBody: (fecha, note) => `Estos son los huecos libres para el ${fecha} ⏰${note}`,
     slotsNoteMore: '\n(mostrando los primeros 10 huecos)',
@@ -241,6 +246,11 @@ const catalogs = {
     dayClosedText: 'Aquest dia no obrim. Tria un altre dia, sisplau.',
     calendarErrorText: "Hi ha hagut un error consultant el calendari. Torna-ho a provar d'aquí un moment.",
     noSlotsText: 'No queden hores lliures aquest dia. Prova amb una altra data.',
+    serviceTooLongText: (service, horario) =>
+      `Ho sentim 🙏 No podem oferir-te "${service.nombre}" aquest dia: té una durada de ` +
+      `${service.duracionMinutos} min i supera el nostre horari d'obertura d'aquell dia ` +
+      `(${formatHour(horario.horaInicio, horario.horaInicioMinuto)}-${formatHour(horario.horaFin, horario.horaFinMinuto)}). ` +
+      'Si us plau, tria un altre dia.',
 
     slotsListBody: (fecha, note) => `Aquestes són les hores lliures per al ${fecha} ⏰${note}`,
     slotsNoteMore: '\n(mostrant les primeres 10 hores)',
@@ -328,6 +338,11 @@ const catalogs = {
     dayClosedText: "We're closed that day. Please choose another day.",
     calendarErrorText: 'There was an error checking the calendar. Please try again in a moment.',
     noSlotsText: 'No free slots left that day. Try another date.',
+    serviceTooLongText: (service, horario) =>
+      `We're sorry 🙏 We can't offer "${service.nombre}" that day: it takes ` +
+      `${service.duracionMinutos} min, which is longer than our opening hours that day ` +
+      `(${formatHour(horario.horaInicio, horario.horaInicioMinuto)}-${formatHour(horario.horaFin, horario.horaFinMinuto)}). ` +
+      'Please choose another day.',
 
     slotsListBody: (fecha, note) => `Here are the free slots for ${fecha} ⏰${note}`,
     slotsNoteMore: '\n(showing the first 10 slots)',

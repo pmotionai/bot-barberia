@@ -5,6 +5,20 @@ function resolveLanguage(lang) {
   return LANGUAGES.includes(lang) ? lang : DEFAULT_LANGUAGE;
 }
 
+function formatHour(hour, minute) {
+  return `${hour}:${String(minute || 0).padStart(2, '0')}`;
+}
+
+/** "15€" o, si el precio es null (a determinar), el texto que se le indique. */
+function priceSuffix(precio, onRequestText) {
+  return precio != null ? `${precio}€` : onRequestText;
+}
+
+/** "€15" o, si el precio es null (a determinar), el texto que se le indique. */
+function pricePrefix(precio, onRequestText) {
+  return precio != null ? `€${precio}` : onRequestText;
+}
+
 const catalogs = {
   es: {
     todayWord: 'hoy',
@@ -23,10 +37,13 @@ const catalogs = {
     fallbackBody: 'Uy, no te he entendido bien 😅 Elige una opción:',
 
     horariosYPreciosBody: (negocio) => {
-      const { horaInicio, horaFin } = negocio.horario;
-      const servicios = negocio.servicios.map((s) => `• ${s.nombre}: ${s.precio}€`).join('\n');
+      const { horaInicio, horaFin, horaInicioMinuto, horaFinMinuto } = negocio.horario;
+      const servicios = negocio.servicios
+        .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'consultar en el momento de la reserva')}`)
+        .join('\n');
       return (
-        `🕒 Nuestro horario: Lunes a Viernes de ${horaInicio}:00 a ${horaFin}:00\n\n` +
+        `🕒 Nuestro horario: Lunes a Viernes de ${formatHour(horaInicio, horaInicioMinuto)} a ` +
+        `${formatHour(horaFin, horaFinMinuto)}\n\n` +
         `✂️ Nuestros servicios:\n${servicios}`
       );
     },
@@ -36,7 +53,7 @@ const catalogs = {
     serviceListBody: '¡Genial! 🙌 Vamos a reservarte una cita. ¿Qué servicio quieres?',
     serviceListButtonText: 'Ver servicios',
     serviceListSectionTitle: 'Servicios',
-    serviceRowDescription: (precio, min) => `${precio}€ · ${min} min`,
+    serviceRowDescription: (precio, min) => `${priceSuffix(precio, 'precio a consultar')} · ${min} min`,
 
     askDateText: "Perfecto ✂️ ¿Qué día te viene bien? Por ejemplo: 'mañana', 'el viernes', o una fecha como '10/09'",
     dateNotUnderstoodText: 'No he entendido esa fecha. Prueba con "mañana", "el viernes" o una fecha como "10/09".',
@@ -55,7 +72,7 @@ const catalogs = {
       `✂️ Servicio: ${service.nombre}\n` +
       `📅 Día: ${slot.toFormat('dd/MM/yyyy')}\n` +
       `⏰ Hora: ${slot.toFormat('HH:mm')}\n` +
-      `💶 Precio: ${service.precio}€\n\n` +
+      `💶 Precio: ${priceSuffix(service.precio, 'a consultar en el momento de la reserva')}\n\n` +
       '¿Confirmas la reserva?',
     btnConfirmYes: '✅ Sí, confirmar',
     btnConfirmNo: '❌ No, cancelar',
@@ -108,10 +125,13 @@ const catalogs = {
     fallbackBody: "Ui, no t'he entès bé 😅 Tria una opció:",
 
     horariosYPreciosBody: (negocio) => {
-      const { horaInicio, horaFin } = negocio.horario;
-      const servicios = negocio.servicios.map((s) => `• ${s.nombre}: ${s.precio}€`).join('\n');
+      const { horaInicio, horaFin, horaInicioMinuto, horaFinMinuto } = negocio.horario;
+      const servicios = negocio.servicios
+        .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'a consultar en el moment de la reserva')}`)
+        .join('\n');
       return (
-        `🕒 El nostre horari: Dilluns a Divendres de ${horaInicio}:00 a ${horaFin}:00\n\n` +
+        `🕒 El nostre horari: Dilluns a Divendres de ${formatHour(horaInicio, horaInicioMinuto)} a ` +
+        `${formatHour(horaFin, horaFinMinuto)}\n\n` +
         `✂️ Els nostres serveis:\n${servicios}`
       );
     },
@@ -121,7 +141,7 @@ const catalogs = {
     serviceListBody: "Genial! 🙌 Anem a reservar-te una cita. Quin servei vols?",
     serviceListButtonText: 'Veure serveis',
     serviceListSectionTitle: 'Serveis',
-    serviceRowDescription: (precio, min) => `${precio}€ · ${min} min`,
+    serviceRowDescription: (precio, min) => `${priceSuffix(precio, 'preu a consultar')} · ${min} min`,
 
     askDateText: "Perfecte ✂️ Quin dia et va bé? Per exemple: 'demà', 'el divendres', o una data com '10/09'",
     dateNotUnderstoodText: 'No he entès aquesta data. Prova amb "demà", "el divendres" o una data com "10/09".',
@@ -140,7 +160,7 @@ const catalogs = {
       `✂️ Servei: ${service.nombre}\n` +
       `📅 Dia: ${slot.toFormat('dd/MM/yyyy')}\n` +
       `⏰ Hora: ${slot.toFormat('HH:mm')}\n` +
-      `💶 Preu: ${service.precio}€\n\n` +
+      `💶 Preu: ${priceSuffix(service.precio, 'a consultar en el moment de la reserva')}\n\n` +
       'Confirmes la reserva?',
     btnConfirmYes: '✅ Sí, confirmar',
     btnConfirmNo: '❌ No, cancel·lar',
@@ -193,10 +213,13 @@ const catalogs = {
     fallbackBody: "Oops, I didn't quite get that 😅 Pick an option:",
 
     horariosYPreciosBody: (negocio) => {
-      const { horaInicio, horaFin } = negocio.horario;
-      const servicios = negocio.servicios.map((s) => `• ${s.nombre}: €${s.precio}`).join('\n');
+      const { horaInicio, horaFin, horaInicioMinuto, horaFinMinuto } = negocio.horario;
+      const servicios = negocio.servicios
+        .map((s) => `• ${s.nombre}: ${pricePrefix(s.precio, 'to be confirmed at booking')}`)
+        .join('\n');
       return (
-        `🕒 Our hours: Monday to Friday, ${horaInicio}:00 to ${horaFin}:00\n\n` +
+        `🕒 Our hours: Monday to Friday, ${formatHour(horaInicio, horaInicioMinuto)} to ` +
+        `${formatHour(horaFin, horaFinMinuto)}\n\n` +
         `✂️ Our services:\n${servicios}`
       );
     },
@@ -206,7 +229,7 @@ const catalogs = {
     serviceListBody: "Great! 🙌 Let's book your appointment. Which service would you like?",
     serviceListButtonText: 'View services',
     serviceListSectionTitle: 'Services',
-    serviceRowDescription: (precio, min) => `€${precio} · ${min} min`,
+    serviceRowDescription: (precio, min) => `${pricePrefix(precio, 'price on request')} · ${min} min`,
 
     askDateText: "Great ✂️ What day works for you? For example: 'tomorrow', 'friday', or a date like '10/09'",
     dateNotUnderstoodText: 'I didn\'t understand that date. Try "tomorrow", "friday" or a date like "10/09".',
@@ -225,7 +248,7 @@ const catalogs = {
       `✂️ Service: ${service.nombre}\n` +
       `📅 Day: ${slot.toFormat('dd/MM/yyyy')}\n` +
       `⏰ Time: ${slot.toFormat('HH:mm')}\n` +
-      `💶 Price: €${service.precio}\n\n` +
+      `💶 Price: ${pricePrefix(service.precio, 'to be confirmed at booking')}\n\n` +
       'Do you confirm the booking?',
     btnConfirmYes: '✅ Yes, confirm',
     btnConfirmNo: '❌ No, cancel',

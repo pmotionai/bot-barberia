@@ -20,15 +20,32 @@ function truncate(str, max) {
 function findService(negocio, text) {
   const normalized = normalize(text);
 
+  // Atajo especifico para barberias con corte/barba combinados: si el
+  // negocio tiene esas claves, un "corte y barba" debe priorizar el combo
+  // sobre el servicio individual.
   const hasCorte = /corte|pelo/.test(normalized);
   const hasBarba = /barba/.test(normalized);
-
   const byKey = (key) => negocio.servicios.find((s) => s.key === key);
+  if (hasCorte && hasBarba && byKey('corte_barba')) return byKey('corte_barba');
+  if (hasBarba && byKey('barba')) return byKey('barba');
+  if (hasCorte && byKey('corte')) return byKey('corte');
 
-  if (hasCorte && hasBarba) return byKey('corte_barba') || null;
-  if (hasBarba) return byKey('barba') || null;
-  if (hasCorte) return byKey('corte') || null;
-  return null;
+  // Coincidencia generica por nombre de servicio, valida para cualquier
+  // negocio: primero por contencion (en cualquier sentido) del nombre
+  // completo, y si no, por alguna palabra significativa del nombre.
+  const byFullName = negocio.servicios.find((s) => {
+    const name = normalize(s.nombre);
+    return normalized.includes(name) || name.includes(normalized);
+  });
+  if (byFullName) return byFullName;
+
+  const bySignificantWord = negocio.servicios.find((s) =>
+    normalize(s.nombre)
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 4)
+      .some((w) => normalized.includes(w))
+  );
+  return bySignificantWord || null;
 }
 
 function findServiceByKey(negocio, key) {

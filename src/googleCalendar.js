@@ -87,10 +87,10 @@ async function getCalendarId(negocio) {
 async function getAvailableSlots(negocio, day, durationMinutes) {
   const calendar = await getCalendarClient();
   const calendarId = await getCalendarId(negocio);
-  const { horaInicio, horaFin } = negocio.horario;
+  const { horaInicio, horaFin, horaInicioMinuto = 0, horaFinMinuto = 0 } = negocio.horario;
 
-  const dayStart = day.set({ hour: horaInicio, minute: 0, second: 0, millisecond: 0 });
-  const dayEnd = day.set({ hour: horaFin, minute: 0, second: 0, millisecond: 0 });
+  const dayStart = day.set({ hour: horaInicio, minute: horaInicioMinuto, second: 0, millisecond: 0 });
+  const dayEnd = day.set({ hour: horaFin, minute: horaFinMinuto, second: 0, millisecond: 0 });
 
   const { data } = await calendar.freebusy.query({
     requestBody: {

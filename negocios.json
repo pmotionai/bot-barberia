@@ -19,6 +19,31 @@
         "calendarId": "416c7c3f1d1fa4c82c9bf87ef6400bb3ae6a1cc50342613c6ca0b841904deeb7@group.calendar.google.com",
         "calendarName": "Citas BotBarberia"
       }
+    },
+    {
+      "id": "nagai-perruqueria",
+      "nombre": "Nagai Perruqueria",
+      "phoneNumberId": "1270395019495649",
+      "timezone": "Europe/Madrid",
+      "horario": {
+        "diasLaborables": [1, 2, 3, 4, 5],
+        "horaInicio": 9,
+        "horaInicioMinuto": 30,
+        "horaFin": 19,
+        "horaFinMinuto": 30
+      },
+      "servicios": [
+        { "key": "color_raiz", "nombre": "Color raíz", "precio": 24, "duracionMinutos": 60 },
+        { "key": "balayage_caramelo", "nombre": "Balayage caramelo", "precio": 95, "duracionMinutos": 120 },
+        { "key": "absolut_repair", "nombre": "Absolut Repair Molecular (tratamiento)", "precio": 30, "duracionMinutos": 30 },
+        { "key": "serioxil", "nombre": "Serioxil, tratamiento repoblación", "precio": 49, "duracionMinutos": 30 },
+        { "key": "manicura_pedicura", "nombre": "Manicura + Pedicura semipermanente", "precio": null, "duracionMinutos": 75 },
+        { "key": "corte", "nombre": "Corte de pelo", "precio": null, "duracionMinutos": 30 }
+      ],
+      "googleCalendar": {
+        "calendarId": "416c7c3f1d1fa4c82c9bf87ef6400bb3ae6a1cc50342613c6ca0b841904deeb7@group.calendar.google.com",
+        "calendarName": "Citas BotBarberia"
+      }
     }
   ]
 }

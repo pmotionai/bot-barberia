@@ -1,3 +1,5 @@
+const i18n = require('./i18n');
+
 const MAX_LIST_ROWS = 10;
 const ROW_TITLE_MAX = 24;
 const ROW_DESC_MAX = 72;
@@ -37,88 +39,80 @@ function eventServiceName(event) {
   return (event.summary || 'Cita').split(' - Cliente')[0];
 }
 
-function horariosYPreciosTexto(negocio) {
-  const { horaInicio, horaFin } = negocio.horario;
-  const servicios = negocio.servicios.map((s) => `• ${s.nombre}: ${s.precio}€`).join('\n');
-  return (
-    `🕒 Nuestro horario: Lunes a Viernes de ${horaInicio}:00 a ${horaFin}:00\n\n` +
-    `✂️ Nuestros servicios:\n${servicios}`
-  );
-}
-
-function welcomeMessage(negocio) {
+function welcomeMessage(negocio, lang) {
+  const s = i18n.t(lang);
   return {
     kind: 'list',
-    body:
-      `¡Hola! 👋 Bienvenido/a a ${negocio.nombre} 💈\n` +
-      'Soy el asistente virtual y estoy aquí para ayudarte. ¿Qué te gustaría hacer?',
-    buttonText: 'Ver opciones',
+    body: s.welcomeBody(negocio),
+    buttonText: s.welcomeButtonText,
     sections: [
       {
-        title: 'Menú principal',
+        title: s.welcomeSectionTitle,
         rows: [
-          { id: 'menu_horarios', title: truncate('📋 Horarios y precios', ROW_TITLE_MAX) },
-          { id: 'menu_reservar', title: truncate('📅 Reservar una cita', ROW_TITLE_MAX) },
-          { id: 'menu_cancelar', title: truncate('❌ Cancelar una cita', ROW_TITLE_MAX) },
+          { id: 'menu_horarios', title: truncate(s.rowHorarios, ROW_TITLE_MAX) },
+          { id: 'menu_reservar', title: truncate(s.rowReservar, ROW_TITLE_MAX) },
+          { id: 'menu_cancelar', title: truncate(s.rowCancelar, ROW_TITLE_MAX) },
+          { id: 'menu_idioma', title: truncate(s.rowIdioma, ROW_TITLE_MAX) },
         ],
       },
     ],
   };
 }
 
-function fallbackMessage(negocio) {
+function fallbackMessage(negocio, lang) {
+  const s = i18n.t(lang);
   return {
-    ...welcomeMessage(negocio),
-    body: 'Uy, no te he entendido bien 😅 Elige una opción:',
+    ...welcomeMessage(negocio, lang),
+    body: s.fallbackBody,
   };
 }
 
-function horariosPreciosMessage(negocio) {
+function horariosPreciosMessage(negocio, lang) {
+  const s = i18n.t(lang);
   return {
     kind: 'buttons',
-    body: horariosYPreciosTexto(negocio),
+    body: s.horariosYPreciosBody(negocio),
     buttons: [
-      { id: 'action_reservar', title: truncate('📅 Reservar cita', BUTTON_TITLE_MAX) },
-      { id: 'action_menu', title: truncate('🏠 Menú principal', BUTTON_TITLE_MAX) },
+      { id: 'action_reservar', title: truncate(s.btnReservarCita, BUTTON_TITLE_MAX) },
+      { id: 'action_menu', title: truncate(s.btnMenuPrincipal, BUTTON_TITLE_MAX) },
     ],
   };
 }
 
-function serviceListMessage(negocio) {
+function serviceListMessage(negocio, lang) {
+  const s = i18n.t(lang);
   return {
     kind: 'list',
-    body: '¡Genial! 🙌 Vamos a reservarte una cita. ¿Qué servicio quieres?',
-    buttonText: 'Ver servicios',
+    body: s.serviceListBody,
+    buttonText: s.serviceListButtonText,
     sections: [
       {
-        title: 'Servicios',
-        rows: negocio.servicios.slice(0, MAX_LIST_ROWS).map((s) => ({
-          id: `service_${s.key}`,
-          title: truncate(s.nombre, ROW_TITLE_MAX),
-          description: truncate(`${s.precio}€ · ${s.duracionMinutos} min`, ROW_DESC_MAX),
+        title: s.serviceListSectionTitle,
+        rows: negocio.servicios.slice(0, MAX_LIST_ROWS).map((srv) => ({
+          id: `service_${srv.key}`,
+          title: truncate(srv.nombre, ROW_TITLE_MAX),
+          description: truncate(s.serviceRowDescription(srv.precio, srv.duracionMinutos), ROW_DESC_MAX),
         })),
       },
     ],
   };
 }
 
-function askDateMessage() {
-  return {
-    kind: 'text',
-    text: "Perfecto ✂️ ¿Qué día te viene bien? Por ejemplo: 'mañana', 'el viernes', o una fecha como '10/09'",
-  };
+function askDateMessage(lang) {
+  return { kind: 'text', text: i18n.t(lang).askDateText };
 }
 
-function slotsListMessage(dateLabel, slots) {
+function slotsListMessage(dateLabel, slots, lang) {
+  const s = i18n.t(lang);
   const shown = slots.slice(0, MAX_LIST_ROWS);
-  const note = slots.length > MAX_LIST_ROWS ? '\n(mostrando los primeros 10 huecos)' : '';
+  const note = slots.length > MAX_LIST_ROWS ? s.slotsNoteMore : '';
   return {
     kind: 'list',
-    body: `Estos son los huecos libres para el ${dateLabel} ⏰${note}`,
-    buttonText: 'Ver horarios',
+    body: s.slotsListBody(dateLabel, note),
+    buttonText: s.slotsListButtonText,
     sections: [
       {
-        title: 'Horarios libres',
+        title: s.slotsSectionTitle,
         rows: shown.map((slot, i) => ({
           id: `slot_${i}`,
           title: slot.toFormat('HH:mm'),
@@ -128,48 +122,42 @@ function slotsListMessage(dateLabel, slots) {
   };
 }
 
-function confirmBookingMessage(session) {
+function confirmBookingMessage(session, lang) {
+  const s = i18n.t(lang);
   const { service, chosenSlot } = session;
   return {
     kind: 'buttons',
-    body:
-      'Vale, resumen de tu cita 📋\n' +
-      `✂️ Servicio: ${service.nombre}\n` +
-      `📅 Día: ${chosenSlot.toFormat('dd/MM/yyyy')}\n` +
-      `⏰ Hora: ${chosenSlot.toFormat('HH:mm')}\n` +
-      `💶 Precio: ${service.precio}€\n\n` +
-      '¿Confirmas la reserva?',
+    body: s.confirmBookingBody(service, chosenSlot),
     buttons: [
-      { id: 'confirm_yes', title: truncate('✅ Sí, confirmar', BUTTON_TITLE_MAX) },
-      { id: 'confirm_no', title: truncate('❌ No, cancelar', BUTTON_TITLE_MAX) },
+      { id: 'confirm_yes', title: truncate(s.btnConfirmYes, BUTTON_TITLE_MAX) },
+      { id: 'confirm_no', title: truncate(s.btnConfirmNo, BUTTON_TITLE_MAX) },
     ],
   };
 }
 
-function bookingConfirmedMessage(negocio, { service, start }) {
+function bookingConfirmedMessage(negocio, { service, start }, lang) {
+  const s = i18n.t(lang);
   return {
     kind: 'buttons',
-    body:
-      '¡Todo listo! ✅ Tu cita está confirmada:\n' +
-      `✂️ ${service.nombre} — 📅 ${start.toFormat('dd/MM/yyyy')} a las ⏰ ${start.toFormat('HH:mm')}\n\n` +
-      `Te esperamos en ${negocio.nombre} 💈 ¡Gracias por confiar en nosotros!`,
+    body: s.bookingConfirmedBody(negocio, service, start),
     buttons: [
-      { id: 'action_cancelar_cita', title: truncate('❌ Cancelar cita', BUTTON_TITLE_MAX) },
-      { id: 'action_menu', title: truncate('🏠 Menú principal', BUTTON_TITLE_MAX) },
+      { id: 'action_cancelar_cita', title: truncate(s.btnCancelarCita, BUTTON_TITLE_MAX) },
+      { id: 'action_menu', title: truncate(s.btnMenuPrincipal, BUTTON_TITLE_MAX) },
     ],
   };
 }
 
-function appointmentsListMessage(events) {
+function appointmentsListMessage(events, lang) {
+  const s = i18n.t(lang);
   const shown = events.slice(0, MAX_LIST_ROWS);
-  const note = events.length > MAX_LIST_ROWS ? '\n(mostrando las próximas 10)' : '';
+  const note = events.length > MAX_LIST_ROWS ? s.appointmentsNoteMore : '';
   return {
     kind: 'list',
-    body: `Estas son tus citas próximas 📋${note}`,
-    buttonText: 'Ver mis citas',
+    body: s.appointmentsListBody(note),
+    buttonText: s.appointmentsListButtonText,
     sections: [
       {
-        title: 'Tus citas',
+        title: s.appointmentsSectionTitle,
         rows: shown.map((ev, i) => ({
           id: `cancel_${i}`,
           title: truncate(eventServiceName(ev), ROW_TITLE_MAX),
@@ -183,41 +171,60 @@ function appointmentsListMessage(events) {
   };
 }
 
-function cancelConfirmMessage(event) {
+function cancelConfirmMessage(event, lang) {
+  const s = i18n.t(lang);
+  return {
+    kind: 'buttons',
+    body: s.cancelConfirmBody(eventServiceName(event), event),
+    buttons: [
+      { id: 'cancel_confirm_yes', title: truncate(s.btnCancelYes, BUTTON_TITLE_MAX) },
+      { id: 'cancel_confirm_no', title: truncate(s.btnCancelNo, BUTTON_TITLE_MAX) },
+    ],
+  };
+}
+
+function cancelConfirmedMessage(negocio, lang) {
+  const s = i18n.t(lang);
+  return {
+    kind: 'buttons',
+    body: s.cancelConfirmedBody(negocio),
+    buttons: [
+      { id: 'action_reservar_otra', title: truncate(s.btnReservarOtra, BUTTON_TITLE_MAX) },
+      { id: 'action_menu', title: truncate(s.btnMenuPrincipal, BUTTON_TITLE_MAX) },
+    ],
+  };
+}
+
+function noAppointmentsMessage(lang) {
+  const s = i18n.t(lang);
+  return {
+    kind: 'buttons',
+    body: s.noAppointmentsBody,
+    buttons: [
+      { id: 'action_reservar', title: truncate(s.btnReservarCita, BUTTON_TITLE_MAX) },
+      { id: 'action_menu', title: truncate(s.btnMenuPrincipal, BUTTON_TITLE_MAX) },
+    ],
+  };
+}
+
+/** Selector de idioma: se muestra igual sin importar el idioma actual. */
+function languagePickerMessage() {
   return {
     kind: 'buttons',
     body:
-      '¿Seguro que quieres cancelar esta cita? 🥺\n' +
-      `✂️ ${eventServiceName(event)} — ${event.start.toFormat('dd/MM/yyyy')} a las ${event.start.toFormat(
-        'HH:mm'
-      )}`,
+      '🌐 ¿En qué idioma prefieres continuar?\n' +
+      'En quin idioma vols continuar?\n' +
+      'Which language would you like to use?',
     buttons: [
-      { id: 'cancel_confirm_yes', title: truncate('✅ Sí, cancelar', BUTTON_TITLE_MAX) },
-      { id: 'cancel_confirm_no', title: truncate('❌ No, mantener', BUTTON_TITLE_MAX) },
+      { id: 'lang_es', title: truncate('🇪🇸 Castellano', BUTTON_TITLE_MAX) },
+      { id: 'lang_ca', title: truncate('🏴󠁥󠁳󠁣󠁴󠁿 Català', BUTTON_TITLE_MAX) },
+      { id: 'lang_en', title: truncate('🇬🇧 English', BUTTON_TITLE_MAX) },
     ],
   };
 }
 
-function cancelConfirmedMessage(negocio) {
-  return {
-    kind: 'buttons',
-    body: `Cita cancelada ❌ Esperamos verte pronto por ${negocio.nombre} 💈`,
-    buttons: [
-      { id: 'action_reservar_otra', title: truncate('📅 Reservar otra', BUTTON_TITLE_MAX) },
-      { id: 'action_menu', title: truncate('🏠 Menú principal', BUTTON_TITLE_MAX) },
-    ],
-  };
-}
-
-function noAppointmentsMessage() {
-  return {
-    kind: 'buttons',
-    body: 'No encuentro ninguna cita a tu nombre 🤔',
-    buttons: [
-      { id: 'action_reservar', title: truncate('📅 Reservar cita', BUTTON_TITLE_MAX) },
-      { id: 'action_menu', title: truncate('🏠 Menú principal', BUTTON_TITLE_MAX) },
-    ],
-  };
+function languageSavedMessage(lang) {
+  return { kind: 'text', text: i18n.t(lang).languageSavedText };
 }
 
 module.exports = {
@@ -237,4 +244,6 @@ module.exports = {
   cancelConfirmMessage,
   cancelConfirmedMessage,
   noAppointmentsMessage,
+  languagePickerMessage,
+  languageSavedMessage,
 };

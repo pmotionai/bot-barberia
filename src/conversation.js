@@ -1,10 +1,12 @@
 const { DateTime } = require('luxon');
 const faq = require('./faq');
+const i18n = require('./i18n');
 const googleCalendar = require('./googleCalendar');
 
 // Estado de la conversacion por negocio + numero de telefono. En memoria: se
 // pierde al reiniciar el proceso, suficiente para este bot de un solo
-// servidor.
+// servidor. El idioma elegido (session.lang) sobrevive a resetSession, para
+// no tener que volver a preguntarlo tras cada reserva/cancelacion.
 const sessions = new Map();
 
 function sessionKey(negocio, from) {
@@ -14,13 +16,15 @@ function sessionKey(negocio, from) {
 function getSession(negocio, from) {
   const key = sessionKey(negocio, from);
   if (!sessions.has(key)) {
-    sessions.set(key, { state: 'idle' });
+    sessions.set(key, { state: 'idle', lang: i18n.DEFAULT_LANGUAGE });
   }
   return sessions.get(key);
 }
 
 function resetSession(negocio, from) {
-  sessions.set(sessionKey(negocio, from), { state: 'idle' });
+  const key = sessionKey(negocio, from);
+  const prev = sessions.get(key);
+  sessions.set(key, { state: 'idle', lang: prev?.lang || i18n.DEFAULT_LANGUAGE });
 }
 
 function normalize(text) {
@@ -28,35 +32,35 @@ function normalize(text) {
 }
 
 function isAffirmative(text) {
-  return /^(si|si\.|s|vale|confirmo|ok|de acuerdo)$/.test(normalize(text));
+  return /^(si|si\.|s|vale|confirmo|ok|de acuerdo|d'acord|yes|y)$/.test(normalize(text));
 }
 
 function isNegative(text) {
-  return /^(no|no\.|n|cancelar|cancela)$/.test(normalize(text));
+  return /^(no|no\.|n|cancelar|cancela|cancel·lar)$/.test(normalize(text));
 }
 
 function isCancelIntent(normalized) {
-  return /cancelar|anular/.test(normalized);
+  return /cancel|anular|anul·lar/.test(normalized);
 }
 
-const WEEKDAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-
 /**
- * Intenta interpretar una fecha en lenguaje natural sencillo: "hoy",
- * "mañana", un dia de la semana ("el viernes"), o una fecha DD/MM(/YYYY).
- * Devuelve un DateTime (inicio del dia, zona del negocio) o null si no se
- * ha entendido.
+ * Intenta interpretar una fecha en lenguaje natural sencillo en el idioma
+ * activo de la sesion: "hoy/avui/today", "mañana/dema/tomorrow", un dia de
+ * la semana, o una fecha DD/MM(/YYYY) (siempre valida, sea cual sea el
+ * idioma). Devuelve un DateTime (inicio del dia, zona del negocio) o null
+ * si no se ha entendido.
  */
-function parseDate(negocio, text) {
+function parseDate(negocio, text, lang) {
   const normalized = normalize(text.trim());
   const now = DateTime.now().setZone(negocio.timezone).startOf('day');
+  const s = i18n.t(lang);
 
-  if (/^hoy$/.test(normalized)) return now;
-  if (/^manana$/.test(normalized)) return now.plus({ days: 1 });
+  if (normalized === s.todayWord) return now;
+  if (normalized === s.tomorrowWord) return now.plus({ days: 1 });
 
-  const weekdayMatch = normalized.match(/(lunes|martes|miercoles|jueves|viernes|sabado|domingo)/);
-  if (weekdayMatch) {
-    const targetIdx = WEEKDAYS.indexOf(weekdayMatch[1]) + 1; // 1..7
+  const weekdayIdx = s.weekdayWords.findIndex((w) => normalized.includes(w));
+  if (weekdayIdx !== -1) {
+    const targetIdx = weekdayIdx + 1; // 1..7 (lunes/dilluns/monday = 1)
     let diff = targetIdx - now.weekday;
     if (diff <= 0) diff += 7;
     return now.plus({ days: diff });
@@ -123,6 +127,34 @@ function extractInput(message) {
   return { kind: 'unknown' };
 }
 
+const LANGUAGE_IDS = { lang_es: 'es', lang_ca: 'ca', lang_en: 'en' };
+
+/**
+ * Devuelve el mensaje correspondiente al paso actual de la conversacion,
+ * sin necesitar un input nuevo del cliente. Se usa para volver a mostrar
+ * "donde estabas" justo despues de cambiar de idioma a mitad de un flujo.
+ */
+function repromptForState(negocio, session) {
+  const lang = session.lang;
+  switch (session.state) {
+    case 'awaiting_service':
+      return [faq.serviceListMessage(negocio, lang)];
+    case 'awaiting_date':
+      return [faq.askDateMessage(lang)];
+    case 'awaiting_slot':
+      return [faq.slotsListMessage(session.date.toFormat('dd/MM'), session.slots || [], lang)];
+    case 'awaiting_confirmation':
+      return [faq.confirmBookingMessage(session, lang)];
+    case 'awaiting_cancel_choice':
+      return [faq.appointmentsListMessage(session.cancelCandidates || [], lang)];
+    case 'awaiting_cancel_confirmation':
+      return [faq.cancelConfirmMessage(session.cancelTarget, lang)];
+    case 'idle':
+    default:
+      return [faq.welcomeMessage(negocio, lang)];
+  }
+}
+
 /**
  * Procesa un mensaje entrante de un negocio concreto y devuelve la lista de
  * mensajes (texto, lista o botones) a enviar de vuelta al cliente. Puede
@@ -132,9 +164,25 @@ async function handleIncomingMessage(negocio, from, message) {
   const input = extractInput(message);
   const session = getSession(negocio, from);
 
+  // El selector de idioma funciona en cualquier punto de la conversacion,
+  // sin perder el paso en el que estuviera el cliente.
+  if ((input.kind === 'button' || input.kind === 'list') && input.id === 'menu_idioma') {
+    return [faq.languagePickerMessage()];
+  }
+  if (input.kind === 'button' && LANGUAGE_IDS[input.id]) {
+    session.lang = LANGUAGE_IDS[input.id];
+    return [faq.languageSavedMessage(session.lang), ...repromptForState(negocio, session)];
+  }
+  if (input.kind === 'text' && /^(idioma|llengua|language)$/.test(normalize(input.text))) {
+    return [faq.languagePickerMessage()];
+  }
+
   if (session.state !== 'idle' && input.kind === 'text' && normalize(input.text) === 'cancelar') {
     resetSession(negocio, from);
-    return [{ kind: 'text', text: 'Operación cancelada.' }, faq.welcomeMessage(negocio)];
+    return [
+      { kind: 'text', text: i18n.t(session.lang).operationCancelledText },
+      faq.welcomeMessage(negocio, session.lang),
+    ];
   }
 
   switch (session.state) {
@@ -154,18 +202,19 @@ async function handleIncomingMessage(negocio, from, message) {
       return handleAwaitingCancelConfirmation(negocio, from, input, session);
     default:
       resetSession(negocio, from);
-      return [faq.welcomeMessage(negocio)];
+      return [faq.welcomeMessage(negocio, session.lang)];
   }
 }
 
 async function handleIdle(negocio, from, input, session) {
+  const lang = session.lang;
   const isFirstContact = !session.seen;
   session.seen = true;
 
   if (input.kind === 'list' || input.kind === 'button') {
     switch (input.id) {
       case 'menu_horarios':
-        return [faq.horariosPreciosMessage(negocio)];
+        return [faq.horariosPreciosMessage(negocio, lang)];
       case 'menu_reservar':
       case 'action_reservar':
       case 'action_reservar_otra':
@@ -174,7 +223,7 @@ async function handleIdle(negocio, from, input, session) {
       case 'action_cancelar_cita':
         return startCancelFlow(negocio, from, session);
       case 'action_menu':
-        return [faq.welcomeMessage(negocio)];
+        return [faq.welcomeMessage(negocio, lang)];
       default:
         break;
     }
@@ -182,16 +231,18 @@ async function handleIdle(negocio, from, input, session) {
 
   const normalized = input.kind === 'text' ? normalize(input.text) : '';
   if (isCancelIntent(normalized)) return startCancelFlow(negocio, from, session);
-  if (/horario|precio/.test(normalized)) return [faq.horariosPreciosMessage(negocio)];
-  if (/reserv|cita|agendar/.test(normalized)) return startReservationFlow(negocio, session);
-  if (/^(menu|hola|inicio|buenas|empezar)\b/.test(normalized)) return [faq.welcomeMessage(negocio)];
+  if (/horari|horario|precio|preu/.test(normalized)) return [faq.horariosPreciosMessage(negocio, lang)];
+  if (/reserv|cita|agendar|book/.test(normalized)) return startReservationFlow(negocio, session);
+  if (/^(menu|hola|inicio|buenas|empezar|hola|hello|hi|bon dia)\b/.test(normalized)) {
+    return [faq.welcomeMessage(negocio, lang)];
+  }
 
-  return [isFirstContact ? faq.welcomeMessage(negocio) : faq.fallbackMessage(negocio)];
+  return [isFirstContact ? faq.welcomeMessage(negocio, lang) : faq.fallbackMessage(negocio, lang)];
 }
 
 function startReservationFlow(negocio, session) {
   session.state = 'awaiting_service';
-  return [faq.serviceListMessage(negocio)];
+  return [faq.serviceListMessage(negocio, session.lang)];
 }
 
 function handleAwaitingService(negocio, from, input, session) {
@@ -209,38 +260,36 @@ function handleAwaitingService(negocio, from, input, session) {
     if (service) return proceedToDate(service, session);
   }
 
-  return [faq.serviceListMessage(negocio)];
+  return [faq.serviceListMessage(negocio, session.lang)];
 }
 
 function proceedToDate(service, session) {
   session.service = service;
   session.state = 'awaiting_date';
-  return [faq.askDateMessage()];
+  return [faq.askDateMessage(session.lang)];
 }
 
 async function handleAwaitingDate(negocio, from, input, session) {
+  const lang = session.lang;
+  const s = i18n.t(lang);
+
   if (input.kind !== 'text') {
-    return [faq.askDateMessage()];
+    return [faq.askDateMessage(lang)];
   }
 
-  const day = parseDate(negocio, input.text);
+  const day = parseDate(negocio, input.text, lang);
   if (!day) {
-    return [
-      {
-        kind: 'text',
-        text: 'No he entendido esa fecha. Prueba con "mañana", "el viernes" o una fecha como "10/09".',
-      },
-    ];
+    return [{ kind: 'text', text: s.dateNotUnderstoodText }];
   }
 
   const now = DateTime.now().setZone(negocio.timezone).startOf('day');
   if (day < now) {
-    return [{ kind: 'text', text: 'Esa fecha ya ha pasado. Indica un día a partir de hoy.' }];
+    return [{ kind: 'text', text: s.datePastText }];
   }
 
   const diasLaborables = negocio.horario.diasLaborables || [1, 2, 3, 4, 5];
   if (!diasLaborables.includes(day.weekday)) {
-    return [{ kind: 'text', text: 'Ese día no abrimos. Elige otro día, por favor.' }];
+    return [{ kind: 'text', text: s.dayClosedText }];
   }
 
   let slots;
@@ -248,19 +297,17 @@ async function handleAwaitingDate(negocio, from, input, session) {
     slots = await googleCalendar.getAvailableSlots(negocio, day, session.service.duracionMinutos);
   } catch (err) {
     console.error('Error consultando Google Calendar:', err);
-    return [
-      { kind: 'text', text: 'Ha ocurrido un error consultando el calendario. Inténtalo de nuevo en un momento.' },
-    ];
+    return [{ kind: 'text', text: s.calendarErrorText }];
   }
 
   if (slots.length === 0) {
-    return [{ kind: 'text', text: 'No quedan huecos libres ese día. Prueba con otra fecha.' }];
+    return [{ kind: 'text', text: s.noSlotsText }];
   }
 
   session.date = day;
   session.slots = slots;
   session.state = 'awaiting_slot';
-  return [faq.slotsListMessage(day.toFormat('dd/MM'), slots)];
+  return [faq.slotsListMessage(day.toFormat('dd/MM'), slots, lang)];
 }
 
 function handleAwaitingSlot(negocio, from, input, session) {
@@ -274,15 +321,17 @@ function handleAwaitingSlot(negocio, from, input, session) {
   }
 
   if (!slot) {
-    return [faq.slotsListMessage(session.date.toFormat('dd/MM'), session.slots || [])];
+    return [faq.slotsListMessage(session.date.toFormat('dd/MM'), session.slots || [], session.lang)];
   }
 
   session.chosenSlot = slot;
   session.state = 'awaiting_confirmation';
-  return [faq.confirmBookingMessage(session)];
+  return [faq.confirmBookingMessage(session, session.lang)];
 }
 
 async function handleAwaitingConfirmation(negocio, from, input, session) {
+  const lang = session.lang;
+  const s = i18n.t(lang);
   const affirmative =
     (input.kind === 'button' && input.id === 'confirm_yes') ||
     (input.kind === 'text' && isAffirmative(input.text));
@@ -303,39 +352,42 @@ async function handleAwaitingConfirmation(negocio, from, input, session) {
       });
     } catch (err) {
       console.error('Error creando el evento en Google Calendar:', err);
-      return [{ kind: 'text', text: 'No he podido guardar la cita en el calendario. Inténtalo de nuevo más tarde.' }];
+      return [{ kind: 'text', text: s.bookingSaveErrorText }];
     }
 
-    const message = faq.bookingConfirmedMessage(negocio, { service: session.service, start });
+    const message = faq.bookingConfirmedMessage(negocio, { service: session.service, start }, lang);
     resetSession(negocio, from);
     return [message];
   }
 
   if (negative) {
     resetSession(negocio, from);
-    return [{ kind: 'text', text: 'De acuerdo, no se ha realizado la reserva.' }, faq.welcomeMessage(negocio)];
+    return [{ kind: 'text', text: s.bookingAbortedText }, faq.welcomeMessage(negocio, lang)];
   }
 
-  return [faq.confirmBookingMessage(session)];
+  return [faq.confirmBookingMessage(session, lang)];
 }
 
 async function startCancelFlow(negocio, from, session) {
+  const lang = session.lang;
+  const s = i18n.t(lang);
+
   let events;
   try {
     events = await googleCalendar.findUpcomingEvents(negocio, from);
   } catch (err) {
     console.error('Error consultando citas para cancelar:', err);
-    return [{ kind: 'text', text: 'Ha ocurrido un error consultando tus citas. Inténtalo de nuevo en un momento.' }];
+    return [{ kind: 'text', text: s.fetchAppointmentsErrorText }];
   }
 
   if (events.length === 0) {
     resetSession(negocio, from);
-    return [faq.noAppointmentsMessage()];
+    return [faq.noAppointmentsMessage(lang)];
   }
 
   session.cancelCandidates = events;
   session.state = 'awaiting_cancel_choice';
-  return [faq.appointmentsListMessage(events)];
+  return [faq.appointmentsListMessage(events, lang)];
 }
 
 function handleAwaitingCancelChoice(negocio, from, input, session) {
@@ -350,15 +402,17 @@ function handleAwaitingCancelChoice(negocio, from, input, session) {
   }
 
   if (!chosen) {
-    return [faq.appointmentsListMessage(session.cancelCandidates || [])];
+    return [faq.appointmentsListMessage(session.cancelCandidates || [], session.lang)];
   }
 
   session.cancelTarget = chosen;
   session.state = 'awaiting_cancel_confirmation';
-  return [faq.cancelConfirmMessage(chosen)];
+  return [faq.cancelConfirmMessage(chosen, session.lang)];
 }
 
 async function handleAwaitingCancelConfirmation(negocio, from, input, session) {
+  const lang = session.lang;
+  const s = i18n.t(lang);
   const affirmative =
     (input.kind === 'button' && input.id === 'cancel_confirm_yes') ||
     (input.kind === 'text' && isAffirmative(input.text));
@@ -371,19 +425,19 @@ async function handleAwaitingCancelConfirmation(negocio, from, input, session) {
       await googleCalendar.cancelEvent(negocio, session.cancelTarget.id);
     } catch (err) {
       console.error('Error cancelando la cita en Google Calendar:', err);
-      return [{ kind: 'text', text: 'No he podido cancelar la cita. Inténtalo de nuevo más tarde.' }];
+      return [{ kind: 'text', text: s.cancelSaveErrorText }];
     }
 
     resetSession(negocio, from);
-    return [faq.cancelConfirmedMessage(negocio)];
+    return [faq.cancelConfirmedMessage(negocio, lang)];
   }
 
   if (negative) {
     resetSession(negocio, from);
-    return [{ kind: 'text', text: 'De acuerdo, no se ha cancelado nada.' }, faq.welcomeMessage(negocio)];
+    return [{ kind: 'text', text: s.cancelAbortedText }, faq.welcomeMessage(negocio, lang)];
   }
 
-  return [faq.cancelConfirmMessage(session.cancelTarget)];
+  return [faq.cancelConfirmMessage(session.cancelTarget, lang)];
 }
 
 module.exports = { handleIncomingMessage };

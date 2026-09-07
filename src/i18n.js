@@ -1,0 +1,269 @@
+const LANGUAGES = ['es', 'ca', 'en'];
+const DEFAULT_LANGUAGE = 'es';
+
+function resolveLanguage(lang) {
+  return LANGUAGES.includes(lang) ? lang : DEFAULT_LANGUAGE;
+}
+
+const catalogs = {
+  es: {
+    todayWord: 'hoy',
+    tomorrowWord: 'manana',
+    weekdayWords: ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'],
+
+    welcomeBody: (negocio) =>
+      `¡Hola! 👋 Bienvenido/a a ${negocio.nombre} 💈\n` +
+      'Soy el asistente virtual y estoy aquí para ayudarte. ¿Qué te gustaría hacer?',
+    welcomeButtonText: 'Ver opciones',
+    welcomeSectionTitle: 'Menú principal',
+    rowHorarios: '📋 Horarios y precios',
+    rowReservar: '📅 Reservar una cita',
+    rowCancelar: '❌ Cancelar una cita',
+    rowIdioma: '🌐 Idioma',
+    fallbackBody: 'Uy, no te he entendido bien 😅 Elige una opción:',
+
+    horariosYPreciosBody: (negocio) => {
+      const { horaInicio, horaFin } = negocio.horario;
+      const servicios = negocio.servicios.map((s) => `• ${s.nombre}: ${s.precio}€`).join('\n');
+      return (
+        `🕒 Nuestro horario: Lunes a Viernes de ${horaInicio}:00 a ${horaFin}:00\n\n` +
+        `✂️ Nuestros servicios:\n${servicios}`
+      );
+    },
+    btnReservarCita: '📅 Reservar cita',
+    btnMenuPrincipal: '🏠 Menú principal',
+
+    serviceListBody: '¡Genial! 🙌 Vamos a reservarte una cita. ¿Qué servicio quieres?',
+    serviceListButtonText: 'Ver servicios',
+    serviceListSectionTitle: 'Servicios',
+    serviceRowDescription: (precio, min) => `${precio}€ · ${min} min`,
+
+    askDateText: "Perfecto ✂️ ¿Qué día te viene bien? Por ejemplo: 'mañana', 'el viernes', o una fecha como '10/09'",
+    dateNotUnderstoodText: 'No he entendido esa fecha. Prueba con "mañana", "el viernes" o una fecha como "10/09".',
+    datePastText: 'Esa fecha ya ha pasado. Indica un día a partir de hoy.',
+    dayClosedText: 'Ese día no abrimos. Elige otro día, por favor.',
+    calendarErrorText: 'Ha ocurrido un error consultando el calendario. Inténtalo de nuevo en un momento.',
+    noSlotsText: 'No quedan huecos libres ese día. Prueba con otra fecha.',
+
+    slotsListBody: (fecha, note) => `Estos son los huecos libres para el ${fecha} ⏰${note}`,
+    slotsNoteMore: '\n(mostrando los primeros 10 huecos)',
+    slotsListButtonText: 'Ver horarios',
+    slotsSectionTitle: 'Horarios libres',
+
+    confirmBookingBody: (service, slot) =>
+      'Vale, resumen de tu cita 📋\n' +
+      `✂️ Servicio: ${service.nombre}\n` +
+      `📅 Día: ${slot.toFormat('dd/MM/yyyy')}\n` +
+      `⏰ Hora: ${slot.toFormat('HH:mm')}\n` +
+      `💶 Precio: ${service.precio}€\n\n` +
+      '¿Confirmas la reserva?',
+    btnConfirmYes: '✅ Sí, confirmar',
+    btnConfirmNo: '❌ No, cancelar',
+
+    bookingConfirmedBody: (negocio, service, start) =>
+      '¡Todo listo! ✅ Tu cita está confirmada:\n' +
+      `✂️ ${service.nombre} — 📅 ${start.toFormat('dd/MM/yyyy')} a las ⏰ ${start.toFormat('HH:mm')}\n\n` +
+      `Te esperamos en ${negocio.nombre} 💈 ¡Gracias por confiar en nosotros!`,
+    btnCancelarCita: '❌ Cancelar cita',
+    bookingSaveErrorText: 'No he podido guardar la cita en el calendario. Inténtalo de nuevo más tarde.',
+    bookingAbortedText: 'De acuerdo, no se ha realizado la reserva.',
+
+    appointmentsListBody: (note) => `Estas son tus citas próximas 📋${note}`,
+    appointmentsNoteMore: '\n(mostrando las próximas 10)',
+    appointmentsListButtonText: 'Ver mis citas',
+    appointmentsSectionTitle: 'Tus citas',
+    fetchAppointmentsErrorText: 'Ha ocurrido un error consultando tus citas. Inténtalo de nuevo en un momento.',
+
+    cancelConfirmBody: (eventName, event) =>
+      '¿Seguro que quieres cancelar esta cita? 🥺\n' +
+      `✂️ ${eventName} — ${event.start.toFormat('dd/MM/yyyy')} a las ${event.start.toFormat('HH:mm')}`,
+    btnCancelYes: '✅ Sí, cancelar',
+    btnCancelNo: '❌ No, mantener',
+    cancelSaveErrorText: 'No he podido cancelar la cita. Inténtalo de nuevo más tarde.',
+
+    cancelConfirmedBody: (negocio) => `Cita cancelada ❌ Esperamos verte pronto por ${negocio.nombre} 💈`,
+    btnReservarOtra: '📅 Reservar otra',
+    cancelAbortedText: 'De acuerdo, no se ha cancelado nada.',
+
+    noAppointmentsBody: 'No encuentro ninguna cita a tu nombre 🤔',
+
+    operationCancelledText: 'Operación cancelada.',
+    languageSavedText: 'Perfecto, a partir de ahora te hablaré en castellano 🇪🇸',
+  },
+
+  ca: {
+    todayWord: 'avui',
+    tomorrowWord: 'dema',
+    weekdayWords: ['dilluns', 'dimarts', 'dimecres', 'dijous', 'divendres', 'dissabte', 'diumenge'],
+
+    welcomeBody: (negocio) =>
+      `Hola! 👋 Benvingut/da a ${negocio.nombre} 💈\n` +
+      "Sóc l'assistent virtual i estic aquí per ajudar-te. Què t'agradaria fer?",
+    welcomeButtonText: 'Veure opcions',
+    welcomeSectionTitle: 'Menú principal',
+    rowHorarios: '📋 Horaris i preus',
+    rowReservar: '📅 Reservar una cita',
+    rowCancelar: '❌ Cancel·lar una cita',
+    rowIdioma: '🌐 Idioma',
+    fallbackBody: "Ui, no t'he entès bé 😅 Tria una opció:",
+
+    horariosYPreciosBody: (negocio) => {
+      const { horaInicio, horaFin } = negocio.horario;
+      const servicios = negocio.servicios.map((s) => `• ${s.nombre}: ${s.precio}€`).join('\n');
+      return (
+        `🕒 El nostre horari: Dilluns a Divendres de ${horaInicio}:00 a ${horaFin}:00\n\n` +
+        `✂️ Els nostres serveis:\n${servicios}`
+      );
+    },
+    btnReservarCita: '📅 Reservar cita',
+    btnMenuPrincipal: '🏠 Menú principal',
+
+    serviceListBody: "Genial! 🙌 Anem a reservar-te una cita. Quin servei vols?",
+    serviceListButtonText: 'Veure serveis',
+    serviceListSectionTitle: 'Serveis',
+    serviceRowDescription: (precio, min) => `${precio}€ · ${min} min`,
+
+    askDateText: "Perfecte ✂️ Quin dia et va bé? Per exemple: 'demà', 'el divendres', o una data com '10/09'",
+    dateNotUnderstoodText: 'No he entès aquesta data. Prova amb "demà", "el divendres" o una data com "10/09".',
+    datePastText: "Aquesta data ja ha passat. Indica un dia a partir d'avui.",
+    dayClosedText: 'Aquest dia no obrim. Tria un altre dia, sisplau.',
+    calendarErrorText: "Hi ha hagut un error consultant el calendari. Torna-ho a provar d'aquí un moment.",
+    noSlotsText: 'No queden hores lliures aquest dia. Prova amb una altra data.',
+
+    slotsListBody: (fecha, note) => `Aquestes són les hores lliures per al ${fecha} ⏰${note}`,
+    slotsNoteMore: '\n(mostrant les primeres 10 hores)',
+    slotsListButtonText: 'Veure horaris',
+    slotsSectionTitle: 'Horaris lliures',
+
+    confirmBookingBody: (service, slot) =>
+      'Molt bé, resum de la teva cita 📋\n' +
+      `✂️ Servei: ${service.nombre}\n` +
+      `📅 Dia: ${slot.toFormat('dd/MM/yyyy')}\n` +
+      `⏰ Hora: ${slot.toFormat('HH:mm')}\n` +
+      `💶 Preu: ${service.precio}€\n\n` +
+      'Confirmes la reserva?',
+    btnConfirmYes: '✅ Sí, confirmar',
+    btnConfirmNo: '❌ No, cancel·lar',
+
+    bookingConfirmedBody: (negocio, service, start) =>
+      'Tot llest! ✅ La teva cita està confirmada:\n' +
+      `✂️ ${service.nombre} — 📅 ${start.toFormat('dd/MM/yyyy')} a les ⏰ ${start.toFormat('HH:mm')}\n\n` +
+      `T'esperem a ${negocio.nombre} 💈 Gràcies per confiar en nosaltres!`,
+    btnCancelarCita: '❌ Cancel·lar cita',
+    bookingSaveErrorText: 'No he pogut desar la cita al calendari. Torna-ho a provar més tard.',
+    bookingAbortedText: "D'acord, no s'ha fet la reserva.",
+
+    appointmentsListBody: (note) => `Aquestes són les teves properes cites 📋${note}`,
+    appointmentsNoteMore: '\n(mostrant les properes 10)',
+    appointmentsListButtonText: 'Veure les meves cites',
+    appointmentsSectionTitle: 'Les teves cites',
+    fetchAppointmentsErrorText: "Hi ha hagut un error consultant les teves cites. Torna-ho a provar d'aquí un moment.",
+
+    cancelConfirmBody: (eventName, event) =>
+      'Segur que vols cancel·lar aquesta cita? 🥺\n' +
+      `✂️ ${eventName} — ${event.start.toFormat('dd/MM/yyyy')} a les ${event.start.toFormat('HH:mm')}`,
+    btnCancelYes: '✅ Sí, cancel·lar',
+    btnCancelNo: '❌ No, mantenir',
+    cancelSaveErrorText: 'No he pogut cancel·lar la cita. Torna-ho a provar més tard.',
+
+    cancelConfirmedBody: (negocio) => `Cita cancel·lada ❌ Esperem veure't aviat per ${negocio.nombre} 💈`,
+    btnReservarOtra: '📅 Reservar una altra',
+    cancelAbortedText: "D'acord, no s'ha cancel·lat res.",
+
+    noAppointmentsBody: 'No trobo cap cita al teu nom 🤔',
+
+    operationCancelledText: 'Operació cancel·lada.',
+    languageSavedText: "Perfecte, a partir d'ara et parlaré en català 🏴󠁥󠁳󠁣󠁴󠁿",
+  },
+
+  en: {
+    todayWord: 'today',
+    tomorrowWord: 'tomorrow',
+    weekdayWords: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+
+    welcomeBody: (negocio) =>
+      `Hi! 👋 Welcome to ${negocio.nombre} 💈\n` +
+      "I'm the virtual assistant and I'm here to help. What would you like to do?",
+    welcomeButtonText: 'View options',
+    welcomeSectionTitle: 'Main menu',
+    rowHorarios: '📋 Hours & prices',
+    rowReservar: '📅 Book an appointment',
+    rowCancelar: '❌ Cancel an appointment',
+    rowIdioma: '🌐 Language',
+    fallbackBody: "Oops, I didn't quite get that 😅 Pick an option:",
+
+    horariosYPreciosBody: (negocio) => {
+      const { horaInicio, horaFin } = negocio.horario;
+      const servicios = negocio.servicios.map((s) => `• ${s.nombre}: €${s.precio}`).join('\n');
+      return (
+        `🕒 Our hours: Monday to Friday, ${horaInicio}:00 to ${horaFin}:00\n\n` +
+        `✂️ Our services:\n${servicios}`
+      );
+    },
+    btnReservarCita: '📅 Book appointment',
+    btnMenuPrincipal: '🏠 Main menu',
+
+    serviceListBody: "Great! 🙌 Let's book your appointment. Which service would you like?",
+    serviceListButtonText: 'View services',
+    serviceListSectionTitle: 'Services',
+    serviceRowDescription: (precio, min) => `€${precio} · ${min} min`,
+
+    askDateText: "Great ✂️ What day works for you? For example: 'tomorrow', 'friday', or a date like '10/09'",
+    dateNotUnderstoodText: 'I didn\'t understand that date. Try "tomorrow", "friday" or a date like "10/09".',
+    datePastText: 'That date has already passed. Please pick a day from today onwards.',
+    dayClosedText: "We're closed that day. Please choose another day.",
+    calendarErrorText: 'There was an error checking the calendar. Please try again in a moment.',
+    noSlotsText: 'No free slots left that day. Try another date.',
+
+    slotsListBody: (fecha, note) => `Here are the free slots for ${fecha} ⏰${note}`,
+    slotsNoteMore: '\n(showing the first 10 slots)',
+    slotsListButtonText: 'View times',
+    slotsSectionTitle: 'Available times',
+
+    confirmBookingBody: (service, slot) =>
+      "Ok, here's a summary of your appointment 📋\n" +
+      `✂️ Service: ${service.nombre}\n` +
+      `📅 Day: ${slot.toFormat('dd/MM/yyyy')}\n` +
+      `⏰ Time: ${slot.toFormat('HH:mm')}\n` +
+      `💶 Price: €${service.precio}\n\n` +
+      'Do you confirm the booking?',
+    btnConfirmYes: '✅ Yes, confirm',
+    btnConfirmNo: '❌ No, cancel',
+
+    bookingConfirmedBody: (negocio, service, start) =>
+      'All set! ✅ Your appointment is confirmed:\n' +
+      `✂️ ${service.nombre} — 📅 ${start.toFormat('dd/MM/yyyy')} at ⏰ ${start.toFormat('HH:mm')}\n\n` +
+      `See you at ${negocio.nombre} 💈 Thanks for trusting us!`,
+    btnCancelarCita: '❌ Cancel appointment',
+    bookingSaveErrorText: "I couldn't save the appointment to the calendar. Please try again later.",
+    bookingAbortedText: "Okay, the booking wasn't made.",
+
+    appointmentsListBody: (note) => `Here are your upcoming appointments 📋${note}`,
+    appointmentsNoteMore: '\n(showing the next 10)',
+    appointmentsListButtonText: 'View my appointments',
+    appointmentsSectionTitle: 'Your appointments',
+    fetchAppointmentsErrorText: 'There was an error checking your appointments. Please try again in a moment.',
+
+    cancelConfirmBody: (eventName, event) =>
+      'Are you sure you want to cancel this appointment? 🥺\n' +
+      `✂️ ${eventName} — ${event.start.toFormat('dd/MM/yyyy')} at ${event.start.toFormat('HH:mm')}`,
+    btnCancelYes: '✅ Yes, cancel',
+    btnCancelNo: '❌ No, keep it',
+    cancelSaveErrorText: "I couldn't cancel the appointment. Please try again later.",
+
+    cancelConfirmedBody: (negocio) => `Appointment cancelled ❌ Hope to see you soon at ${negocio.nombre} 💈`,
+    btnReservarOtra: '📅 Book another',
+    cancelAbortedText: 'Okay, nothing was cancelled.',
+
+    noAppointmentsBody: "I can't find any appointment under your name 🤔",
+
+    operationCancelledText: 'Operation cancelled.',
+    languageSavedText: "Great, I'll speak to you in English from now on 🇬🇧",
+  },
+};
+
+function t(lang) {
+  return catalogs[resolveLanguage(lang)];
+}
+
+module.exports = { LANGUAGES, DEFAULT_LANGUAGE, resolveLanguage, t };

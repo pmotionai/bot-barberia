@@ -177,6 +177,28 @@ async function handleIncomingMessage(negocio, from, message) {
     return [faq.languagePickerMessage()];
   }
 
+  // Atajos de navegacion (menu, reservar, cancelar...): funcionan sin
+  // importar en que paso este el cliente, por si toca un boton de un
+  // mensaje anterior en vez de responder al paso actual.
+  if (input.kind === 'list' || input.kind === 'button') {
+    switch (input.id) {
+      case 'menu_horarios':
+        return [faq.horariosPreciosMessage(negocio, session.lang)];
+      case 'menu_reservar':
+      case 'action_reservar':
+      case 'action_reservar_otra':
+        return startReservationFlow(negocio, session);
+      case 'menu_cancelar':
+      case 'action_cancelar_cita':
+        return startCancelFlow(negocio, from, session);
+      case 'action_menu':
+        resetSession(negocio, from);
+        return [faq.welcomeMessage(negocio, session.lang)];
+      default:
+        break;
+    }
+  }
+
   if (session.state !== 'idle' && input.kind === 'text' && normalize(input.text) === 'cancelar') {
     resetSession(negocio, from);
     return [
@@ -211,24 +233,10 @@ async function handleIdle(negocio, from, input, session) {
   const isFirstContact = !session.seen;
   session.seen = true;
 
-  if (input.kind === 'list' || input.kind === 'button') {
-    switch (input.id) {
-      case 'menu_horarios':
-        return [faq.horariosPreciosMessage(negocio, lang)];
-      case 'menu_reservar':
-      case 'action_reservar':
-      case 'action_reservar_otra':
-        return startReservationFlow(negocio, session);
-      case 'menu_cancelar':
-      case 'action_cancelar_cita':
-        return startCancelFlow(negocio, from, session);
-      case 'action_menu':
-        return [faq.welcomeMessage(negocio, lang)];
-      default:
-        break;
-    }
-  }
-
+  // Los ids de lista/boton (menu_*, action_*) ya se gestionan de forma
+  // global en handleIncomingMessage antes de llegar aqui; si llegamos a
+  // este punto con uno de ellos es que no coincidio ninguno, asi que
+  // seguimos con la interpretacion de texto libre.
   const normalized = input.kind === 'text' ? normalize(input.text) : '';
   if (isCancelIntent(normalized)) return startCancelFlow(negocio, from, session);
   if (/horari|horario|precio|preu/.test(normalized)) return [faq.horariosPreciosMessage(negocio, lang)];
@@ -312,7 +320,7 @@ async function handleAwaitingDate(negocio, from, input, session) {
   return [faq.slotsListMessage(day.toFormat('dd/MM'), slots, lang)];
 }
 
-function handleAwaitingSlot(negocio, from, input, session) {
+async function handleAwaitingSlot(negocio, from, input, session) {
   let slot = null;
 
   if (input.kind === 'list' && input.id.startsWith('slot_')) {
@@ -320,6 +328,18 @@ function handleAwaitingSlot(negocio, from, input, session) {
     slot = session.slots?.[idx] || null;
   } else if (input.kind === 'text') {
     slot = findChosenSlotByText(input.text, session.slots || []);
+
+    // El cliente puede estar rectificando el dia ("mejor mañana") en vez
+    // de elegir un hueco de la lista actual. Si el texto no es un hueco
+    // pero SI se interpreta como una fecha valida, lo tratamos como si
+    // hubiera vuelto al paso de elegir dia con esa fecha nueva.
+    if (!slot) {
+      const maybeNewDay = parseDate(negocio, input.text, session.lang);
+      if (maybeNewDay) {
+        session.state = 'awaiting_date';
+        return handleAwaitingDate(negocio, from, input, session);
+      }
+    }
   }
 
   if (!slot) {

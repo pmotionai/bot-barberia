@@ -166,7 +166,7 @@ async function findUpcomingEvents(negocio, from) {
   const calendar = await getCalendarClient();
   const calendarId = await getCalendarId(negocio);
   const now = DateTime.now().setZone(negocio.timezone);
-  const marker = `Cliente: ${from}.`;
+  const marker = `Teléfono: ${from}.`;
 
   // No usamos el parametro "q" (busqueda por texto de Google) porque su
   // indice puede tardar en reflejar eventos recien creados, dando falsos

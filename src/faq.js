@@ -53,7 +53,8 @@ function findServiceByKey(negocio, key) {
 }
 
 function eventServiceName(event) {
-  return (event.summary || 'Cita').split(' - Cliente')[0];
+  // El resumen del evento tiene forma "{servicio} - {nombre} ({telefono})".
+  return (event.summary || 'Cita').split(' - ')[0];
 }
 
 function welcomeMessage(negocio, lang) {
@@ -119,6 +120,10 @@ function askDateMessage(lang) {
   return { kind: 'text', text: i18n.t(lang).askDateText };
 }
 
+function askNameMessage(lang) {
+  return { kind: 'text', text: i18n.t(lang).askNameText };
+}
+
 function slotsListMessage(dateLabel, slots, lang) {
   const s = i18n.t(lang);
   const shown = slots.slice(0, MAX_LIST_ROWS);
@@ -144,7 +149,7 @@ function confirmBookingMessage(negocio, session, lang) {
   const { service, chosenSlot } = session;
   return {
     kind: 'buttons',
-    body: s.confirmBookingBody(negocio, service, chosenSlot),
+    body: s.confirmBookingBody(negocio, service, chosenSlot, session.clientName),
     buttons: [
       { id: 'confirm_yes', title: truncate(s.btnConfirmYes, BUTTON_TITLE_MAX) },
       { id: 'confirm_change_hour', title: truncate(s.btnConfirmChangeHour, BUTTON_TITLE_MAX) },
@@ -255,6 +260,7 @@ module.exports = {
   horariosPreciosMessage,
   serviceListMessage,
   askDateMessage,
+  askNameMessage,
   slotsListMessage,
   confirmBookingMessage,
   bookingConfirmedMessage,

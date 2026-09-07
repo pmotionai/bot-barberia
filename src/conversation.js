@@ -167,6 +167,8 @@ function repromptForState(negocio, session) {
       return [faq.askDateMessage(lang)];
     case 'awaiting_slot':
       return [faq.slotsListMessage(session.date.toFormat('dd/MM'), session.slots || [], lang)];
+    case 'awaiting_name':
+      return [faq.askNameMessage(lang)];
     case 'awaiting_confirmation':
       return [faq.confirmBookingMessage(negocio, session, lang)];
     case 'awaiting_cancel_choice':
@@ -255,6 +257,8 @@ async function handleIncomingMessage(negocio, from, message) {
       return handleAwaitingDate(negocio, from, input, session);
     case 'awaiting_slot':
       return handleAwaitingSlot(negocio, from, input, session);
+    case 'awaiting_name':
+      return handleAwaitingName(negocio, from, input, session);
     case 'awaiting_confirmation':
       return handleAwaitingConfirmation(negocio, from, input, session);
     case 'awaiting_cancel_choice':
@@ -393,6 +397,24 @@ async function handleAwaitingSlot(negocio, from, input, session) {
   }
 
   session.chosenSlot = slot;
+
+  // Si ya tenemos el nombre (p.ej. viene de "Modificar hora" tras haberlo
+  // dado antes), no hace falta volver a preguntarlo.
+  if (session.clientName) {
+    session.state = 'awaiting_confirmation';
+    return [faq.confirmBookingMessage(negocio, session, session.lang)];
+  }
+
+  session.state = 'awaiting_name';
+  return [faq.askNameMessage(session.lang)];
+}
+
+function handleAwaitingName(negocio, from, input, session) {
+  if (input.kind !== 'text' || !input.text.trim()) {
+    return [faq.askNameMessage(session.lang)];
+  }
+
+  session.clientName = input.text.trim();
   session.state = 'awaiting_confirmation';
   return [faq.confirmBookingMessage(negocio, session, session.lang)];
 }
@@ -419,8 +441,10 @@ async function handleAwaitingConfirmation(negocio, from, input, session) {
 
     try {
       await googleCalendar.createEvent(negocio, {
-        summary: `${session.service.nombre} - Cliente ${from}`,
-        description: `Cita reservada por WhatsApp. Servicio: ${session.service.nombre}. Cliente: ${from}.`,
+        summary: `${session.service.nombre} - ${session.clientName} (${from})`,
+        description:
+          `Cita reservada por WhatsApp. Servicio: ${session.service.nombre}. ` +
+          `Cliente: ${session.clientName}. Teléfono: ${from}.`,
         start,
         end,
       });

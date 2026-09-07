@@ -149,6 +149,7 @@ const catalogs = {
     serviceRowDescription: (precio, min) => `${priceSuffix(precio, 'precio a consultar')} · ${min} min`,
 
     askDateText: "Perfecto ✂️ ¿Qué día te viene bien? Por ejemplo: 'mañana', 'el viernes', o una fecha como '10/09'",
+    askNameText: '¿Cómo te llamas? 😊',
     dateNotUnderstoodText: 'No he entendido esa fecha. Prueba con "mañana", "el viernes" o una fecha como "10/09".',
     datePastText: 'Esa fecha ya ha pasado. Indica un día a partir de hoy.',
     dayClosedText: 'Ese día no abrimos. Elige otro día, por favor.',
@@ -165,8 +166,9 @@ const catalogs = {
     slotsListButtonText: 'Ver horarios',
     slotsSectionTitle: 'Horarios libres',
 
-    confirmBookingBody: (negocio, service, slot) =>
+    confirmBookingBody: (negocio, service, slot, clientName) =>
       'Vale, resumen de tu cita 📋\n' +
+      `👤 Nombre: ${clientName}\n` +
       `${emoji(negocio, 'servicio', '✂️')} Servicio: ${service.nombre}\n` +
       `📅 Día: ${slot.toFormat('dd/MM/yyyy')}\n` +
       `⏰ Hora: ${slot.toFormat('HH:mm')}\n` +
@@ -243,6 +245,7 @@ const catalogs = {
     serviceRowDescription: (precio, min) => `${priceSuffix(precio, 'preu a consultar')} · ${min} min`,
 
     askDateText: "Perfecte ✂️ Quin dia et va bé? Per exemple: 'demà', 'el divendres', o una data com '10/09'",
+    askNameText: 'Com et dius? 😊',
     dateNotUnderstoodText: 'No he entès aquesta data. Prova amb "demà", "el divendres" o una data com "10/09".',
     datePastText: "Aquesta data ja ha passat. Indica un dia a partir d'avui.",
     dayClosedText: 'Aquest dia no obrim. Tria un altre dia, sisplau.',
@@ -259,8 +262,9 @@ const catalogs = {
     slotsListButtonText: 'Veure horaris',
     slotsSectionTitle: 'Horaris lliures',
 
-    confirmBookingBody: (negocio, service, slot) =>
+    confirmBookingBody: (negocio, service, slot, clientName) =>
       'Molt bé, resum de la teva cita 📋\n' +
+      `👤 Nom: ${clientName}\n` +
       `${emoji(negocio, 'servicio', '✂️')} Servei: ${service.nombre}\n` +
       `📅 Dia: ${slot.toFormat('dd/MM/yyyy')}\n` +
       `⏰ Hora: ${slot.toFormat('HH:mm')}\n` +
@@ -337,6 +341,7 @@ const catalogs = {
     serviceRowDescription: (precio, min) => `${pricePrefix(precio, 'price on request')} · ${min} min`,
 
     askDateText: "Great ✂️ What day works for you? For example: 'tomorrow', 'friday', or a date like '10/09'",
+    askNameText: "What's your name? 😊",
     dateNotUnderstoodText: 'I didn\'t understand that date. Try "tomorrow", "friday" or a date like "10/09".',
     datePastText: 'That date has already passed. Please pick a day from today onwards.',
     dayClosedText: "We're closed that day. Please choose another day.",
@@ -353,8 +358,9 @@ const catalogs = {
     slotsListButtonText: 'View times',
     slotsSectionTitle: 'Available times',
 
-    confirmBookingBody: (negocio, service, slot) =>
+    confirmBookingBody: (negocio, service, slot, clientName) =>
       "Ok, here's a summary of your appointment 📋\n" +
+      `👤 Name: ${clientName}\n` +
       `${emoji(negocio, 'servicio', '✂️')} Service: ${service.nombre}\n` +
       `📅 Day: ${slot.toFormat('dd/MM/yyyy')}\n` +
       `⏰ Time: ${slot.toFormat('HH:mm')}\n` +

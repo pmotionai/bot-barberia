@@ -298,7 +298,7 @@ const catalogs = {
 
     operationCancelledText: 'Operació cancel·lada.',
     restartingChoiceText: "D'acord, comencem de nou triant el servei 🙌",
-    languageSavedText: "Perfecte, a partir d'ara et parlaré en català 🏴󠁥󠁳󠁣󠁴󠁿",
+    languageSavedText: "Perfecte, a partir d'ara et parlaré en català",
   },
 
   en: {

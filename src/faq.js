@@ -234,7 +234,7 @@ function languagePickerMessage() {
       'Which language would you like to use?',
     buttons: [
       { id: 'lang_es', title: truncate('🇪🇸 Castellano', BUTTON_TITLE_MAX) },
-      { id: 'lang_ca', title: truncate('🏴󠁥󠁳󠁣󠁴󠁿 Català', BUTTON_TITLE_MAX) },
+      { id: 'lang_ca', title: truncate('Català', BUTTON_TITLE_MAX) },
       { id: 'lang_en', title: truncate('🇬🇧 English', BUTTON_TITLE_MAX) },
     ],
   };

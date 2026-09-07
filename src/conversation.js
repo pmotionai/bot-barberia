@@ -55,8 +55,15 @@ function parseDate(negocio, text, lang) {
   const now = DateTime.now().setZone(negocio.timezone).startOf('day');
   const s = i18n.t(lang);
 
-  if (normalized === s.todayWord) return now;
-  if (normalized === s.tomorrowWord) return now.plus({ days: 1 });
+  // Se busca la palabra en cualquier parte de la frase (no hace falta que
+  // sea el mensaje entero), para reconocer cosas como "mejor mañana",
+  // "prefiero mañana porfavor" o "¿tienes hueco mañana?". En español se
+  // acepta ademas el atajo coloquial "maña" (sin la "na" final).
+  const todayRe = new RegExp(`\\b${s.todayWord}\\b`);
+  if (todayRe.test(normalized)) return now;
+
+  const tomorrowRe = lang === 'es' ? /\bmana(na)?\b/ : new RegExp(`\\b${s.tomorrowWord}\\b`);
+  if (tomorrowRe.test(normalized)) return now.plus({ days: 1 });
 
   const weekdayIdx = s.weekdayWords.findIndex((w) => normalized.includes(w));
   if (weekdayIdx !== -1) {
@@ -66,7 +73,9 @@ function parseDate(negocio, text, lang) {
     return now.plus({ days: diff });
   }
 
-  const match = text.trim().match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?$/);
+  // Tambien se busca la fecha DD/MM(/YYYY) en cualquier parte del texto,
+  // por si viene acompañada de mas palabras ("el 10/09 porfavor").
+  const match = text.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
   if (match) {
     const [, dayStr, monthStr, yearStr] = match;
     let year = yearStr ? parseInt(yearStr, 10) : now.year;
@@ -85,15 +94,30 @@ function parseDate(negocio, text, lang) {
 function findChosenSlotByText(text, slots) {
   const cleaned = text.trim();
 
-  const asIndex = parseInt(cleaned, 10);
-  if (!Number.isNaN(asIndex) && slots[asIndex - 1]) {
-    return slots[asIndex - 1];
+  // Solo se interpreta como indice de la lista si el mensaje es unicamente
+  // ese numero (p.ej. "3"), no si son las primeras cifras de otra cosa como
+  // una hora "09:30" (que si no, parseInt lo leeria como el indice 9).
+  if (/^\d{1,2}$/.test(cleaned)) {
+    const asIndex = parseInt(cleaned, 10);
+    if (slots[asIndex - 1]) return slots[asIndex - 1];
   }
 
-  const timeMatch = cleaned.match(/^(\d{1,2})[:.h](\d{2})$/);
+  // Hora exacta en cualquier parte del texto: "10:00", "10.00", "10h00"...
+  const timeMatch = cleaned.match(/(\d{1,2})[:.h](\d{2})\b/);
   if (timeMatch) {
     const [, h, m] = timeMatch;
-    return slots.find((s) => s.hour === parseInt(h, 10) && s.minute === parseInt(m, 10)) || null;
+    const found = slots.find((s) => s.hour === parseInt(h, 10) && s.minute === parseInt(m, 10));
+    if (found) return found;
+  }
+
+  // Hora suelta sin minutos, tipo "mejor a las 10" o "las 10h" (se asume
+  // en punto, ':00'). Se exige la palabra "las" para no confundir un
+  // numero cualquiera de la frase con una hora.
+  const bareHourMatch = normalize(cleaned).match(/\b(?:a\s+)?las\s+(\d{1,2})\s*h?\b/);
+  if (bareHourMatch) {
+    const h = parseInt(bareHourMatch[1], 10);
+    const found = slots.find((s) => s.hour === h && s.minute === 0);
+    if (found) return found;
   }
 
   return null;

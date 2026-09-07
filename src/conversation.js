@@ -287,8 +287,10 @@ async function handleAwaitingDate(negocio, from, input, session) {
     return [{ kind: 'text', text: s.datePastText }];
   }
 
-  const diasLaborables = negocio.horario.diasLaborables || [1, 2, 3, 4, 5];
-  if (!diasLaborables.includes(day.weekday)) {
+  const openDays = negocio.horario.horarioPorDia
+    ? Object.keys(negocio.horario.horarioPorDia).map(Number)
+    : negocio.horario.diasLaborables || [1, 2, 3, 4, 5];
+  if (!openDays.includes(day.weekday)) {
     return [{ kind: 'text', text: s.dayClosedText }];
   }
 

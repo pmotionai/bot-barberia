@@ -26,11 +26,13 @@
       "phoneNumberId": "1270395019495649",
       "timezone": "Europe/Madrid",
       "horario": {
-        "diasLaborables": [1, 2, 3, 4, 5],
-        "horaInicio": 9,
-        "horaInicioMinuto": 30,
-        "horaFin": 19,
-        "horaFinMinuto": 30
+        "horarioPorDia": {
+          "1": { "horaInicio": 9, "horaFin": 18 },
+          "3": { "horaInicio": 9, "horaFin": 18 },
+          "4": { "horaInicio": 9, "horaFin": 18 },
+          "5": { "horaInicio": 9, "horaFin": 18 },
+          "6": { "horaInicio": 9, "horaFin": 14 }
+        }
       },
       "servicios": [
         { "key": "color_raiz", "nombre": "Color raíz", "precio": 24, "duracionMinutos": 60 },

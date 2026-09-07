@@ -19,6 +19,71 @@ function pricePrefix(precio, onRequestText) {
   return precio != null ? `€${precio}` : onRequestText;
 }
 
+const WEEKDAY_DISPLAY = {
+  es: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+  ca: ['Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres', 'Dissabte', 'Diumenge'],
+  en: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+};
+const DAY_RANGE_CONNECTOR = { es: 'a', ca: 'a', en: 'to' };
+
+/**
+ * Devuelve, en orden de lunes a domingo, el horario de cada dia abierto.
+ * Soporta tanto el formato antiguo (horaInicio/horaFin + diasLaborables,
+ * mismo horario todos los dias) como negocio.horario.horarioPorDia
+ * ({"1": {horaInicio,horaFin,...}, ...}, dias 1=lunes..7=domingo, los dias
+ * ausentes se consideran cerrados).
+ */
+function scheduleEntries(negocio) {
+  const { horario } = negocio;
+  if (horario.horarioPorDia) {
+    return Object.entries(horario.horarioPorDia)
+      .map(([day, h]) => ({ day: parseInt(day, 10), ...h }))
+      .sort((a, b) => a.day - b.day);
+  }
+  const dias = horario.diasLaborables || [1, 2, 3, 4, 5];
+  return dias.map((day) => ({
+    day,
+    horaInicio: horario.horaInicio,
+    horaFin: horario.horaFin,
+    horaInicioMinuto: horario.horaInicioMinuto,
+    horaFinMinuto: horario.horaFinMinuto,
+  }));
+}
+
+/** Texto multilinea con el horario agrupando dias consecutivos con el mismo horario. */
+function formatSchedule(negocio, lang) {
+  const entries = scheduleEntries(negocio);
+  const names = WEEKDAY_DISPLAY[lang];
+  const connector = DAY_RANGE_CONNECTOR[lang];
+
+  const groups = [];
+  for (const entry of entries) {
+    const last = groups[groups.length - 1];
+    const sameHours =
+      last &&
+      last.horaInicio === entry.horaInicio &&
+      last.horaFin === entry.horaFin &&
+      (last.horaInicioMinuto || 0) === (entry.horaInicioMinuto || 0) &&
+      (last.horaFinMinuto || 0) === (entry.horaFinMinuto || 0) &&
+      entry.day === last.lastDay + 1;
+    if (sameHours) {
+      last.lastDay = entry.day;
+    } else {
+      groups.push({ ...entry, firstDay: entry.day, lastDay: entry.day });
+    }
+  }
+
+  return groups
+    .map((g) => {
+      const dayLabel =
+        g.firstDay === g.lastDay
+          ? names[g.firstDay - 1]
+          : `${names[g.firstDay - 1]} ${connector} ${names[g.lastDay - 1]}`;
+      return `${dayLabel}: ${formatHour(g.horaInicio, g.horaInicioMinuto)}-${formatHour(g.horaFin, g.horaFinMinuto)}`;
+    })
+    .join('\n');
+}
+
 const catalogs = {
   es: {
     todayWord: 'hoy',
@@ -37,13 +102,11 @@ const catalogs = {
     fallbackBody: 'Uy, no te he entendido bien 😅 Elige una opción:',
 
     horariosYPreciosBody: (negocio) => {
-      const { horaInicio, horaFin, horaInicioMinuto, horaFinMinuto } = negocio.horario;
       const servicios = negocio.servicios
         .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'consultar en el momento de la reserva')}`)
         .join('\n');
       return (
-        `🕒 Nuestro horario: Lunes a Viernes de ${formatHour(horaInicio, horaInicioMinuto)} a ` +
-        `${formatHour(horaFin, horaFinMinuto)}\n\n` +
+        `🕒 Nuestro horario:\n${formatSchedule(negocio, 'es')}\n\n` +
         `✂️ Nuestros servicios:\n${servicios}`
       );
     },
@@ -125,13 +188,11 @@ const catalogs = {
     fallbackBody: "Ui, no t'he entès bé 😅 Tria una opció:",
 
     horariosYPreciosBody: (negocio) => {
-      const { horaInicio, horaFin, horaInicioMinuto, horaFinMinuto } = negocio.horario;
       const servicios = negocio.servicios
         .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'a consultar en el moment de la reserva')}`)
         .join('\n');
       return (
-        `🕒 El nostre horari: Dilluns a Divendres de ${formatHour(horaInicio, horaInicioMinuto)} a ` +
-        `${formatHour(horaFin, horaFinMinuto)}\n\n` +
+        `🕒 El nostre horari:\n${formatSchedule(negocio, 'ca')}\n\n` +
         `✂️ Els nostres serveis:\n${servicios}`
       );
     },
@@ -213,13 +274,11 @@ const catalogs = {
     fallbackBody: "Oops, I didn't quite get that 😅 Pick an option:",
 
     horariosYPreciosBody: (negocio) => {
-      const { horaInicio, horaFin, horaInicioMinuto, horaFinMinuto } = negocio.horario;
       const servicios = negocio.servicios
         .map((s) => `• ${s.nombre}: ${pricePrefix(s.precio, 'to be confirmed at booking')}`)
         .join('\n');
       return (
-        `🕒 Our hours: Monday to Friday, ${formatHour(horaInicio, horaInicioMinuto)} to ` +
-        `${formatHour(horaFin, horaFinMinuto)}\n\n` +
+        `🕒 Our hours:\n${formatSchedule(negocio, 'en')}\n\n` +
         `✂️ Our services:\n${servicios}`
       );
     },

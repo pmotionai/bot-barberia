@@ -87,7 +87,13 @@ async function getCalendarId(negocio) {
 async function getAvailableSlots(negocio, day, durationMinutes) {
   const calendar = await getCalendarClient();
   const calendarId = await getCalendarId(negocio);
-  const { horaInicio, horaFin, horaInicioMinuto = 0, horaFinMinuto = 0 } = negocio.horario;
+  const dayConfig = negocio.horario.horarioPorDia
+    ? negocio.horario.horarioPorDia[day.weekday]
+    : negocio.horario;
+  if (!dayConfig) {
+    throw new Error(`El negocio "${negocio.nombre}" no tiene horario configurado para ese día.`);
+  }
+  const { horaInicio, horaFin, horaInicioMinuto = 0, horaFinMinuto = 0 } = dayConfig;
 
   const dayStart = day.set({ hour: horaInicio, minute: horaInicioMinuto, second: 0, millisecond: 0 });
   const dayEnd = day.set({ hour: horaFin, minute: horaFinMinuto, second: 0, millisecond: 0 });

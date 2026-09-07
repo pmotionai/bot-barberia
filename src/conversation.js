@@ -400,6 +400,12 @@ async function handleAwaitingSlot(negocio, from, input, session) {
 async function handleAwaitingConfirmation(negocio, from, input, session) {
   const lang = session.lang;
   const s = i18n.t(lang);
+
+  if (input.kind === 'button' && input.id === 'confirm_change_hour') {
+    session.state = 'awaiting_slot';
+    return [faq.slotsListMessage(session.date.toFormat('dd/MM'), session.slots || [], lang)];
+  }
+
   const affirmative =
     (input.kind === 'button' && input.id === 'confirm_yes') ||
     (input.kind === 'text' && isAffirmative(input.text));

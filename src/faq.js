@@ -147,6 +147,7 @@ function confirmBookingMessage(negocio, session, lang) {
     body: s.confirmBookingBody(negocio, service, chosenSlot),
     buttons: [
       { id: 'confirm_yes', title: truncate(s.btnConfirmYes, BUTTON_TITLE_MAX) },
+      { id: 'confirm_change_hour', title: truncate(s.btnConfirmChangeHour, BUTTON_TITLE_MAX) },
       { id: 'confirm_no', title: truncate(s.btnConfirmNo, BUTTON_TITLE_MAX) },
     ],
   };

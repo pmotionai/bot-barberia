@@ -173,6 +173,7 @@ const catalogs = {
       `💶 Precio: ${priceSuffix(service.precio, 'a consultar en el momento de la reserva')}\n\n` +
       '¿Confirmas la reserva?',
     btnConfirmYes: '✅ Sí, confirmar',
+    btnConfirmChangeHour: '🕐 Modificar hora',
     btnConfirmNo: '❌ No, cancelar',
 
     bookingConfirmedBody: (negocio, service, start) =>
@@ -266,6 +267,7 @@ const catalogs = {
       `💶 Preu: ${priceSuffix(service.precio, 'a consultar en el moment de la reserva')}\n\n` +
       'Confirmes la reserva?',
     btnConfirmYes: '✅ Sí, confirmar',
+    btnConfirmChangeHour: "🕐 Modificar l'hora",
     btnConfirmNo: '❌ No, cancel·lar',
 
     bookingConfirmedBody: (negocio, service, start) =>
@@ -359,6 +361,7 @@ const catalogs = {
       `💶 Price: ${pricePrefix(service.precio, 'to be confirmed at booking')}\n\n` +
       'Do you confirm the booking?',
     btnConfirmYes: '✅ Yes, confirm',
+    btnConfirmChangeHour: '🕐 Change time',
     btnConfirmNo: '❌ No, cancel',
 
     bookingConfirmedBody: (negocio, service, start) =>

@@ -156,7 +156,7 @@ function serviceListMessage(negocio, lang, categoria) {
         rows: servicios.slice(0, MAX_LIST_ROWS).map((srv) => ({
           id: `service_${srv.key}`,
           title: truncate(srv.nombre, ROW_TITLE_MAX),
-          description: truncate(s.serviceRowDescription(srv.precio, srv.duracionMinutos), ROW_DESC_MAX),
+          description: truncate(s.serviceRowDescription(srv.precio), ROW_DESC_MAX),
         })),
       },
     ],

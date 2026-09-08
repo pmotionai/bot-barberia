@@ -166,7 +166,7 @@ const catalogs = {
     serviceListBody: '¡Genial! 🙌 Vamos a reservarte una cita. ¿Qué servicio quieres?',
     serviceListButtonText: 'Ver servicios',
     serviceListSectionTitle: 'Servicios',
-    serviceRowDescription: (precio, min) => `${priceSuffix(precio, 'precio a consultar')} · ${min} min`,
+    serviceRowDescription: (precio) => priceSuffix(precio, 'precio a consultar'),
 
     askDateText: "Perfecto ✂️ ¿Qué día te viene bien? Por ejemplo: 'mañana', 'el viernes', o una fecha como '10/09'",
     askNameText: '¿Cómo te llamas? 😊',
@@ -176,8 +176,7 @@ const catalogs = {
     calendarErrorText: 'Ha ocurrido un error consultando el calendario. Inténtalo de nuevo en un momento.',
     noSlotsText: 'No quedan huecos libres ese día. Prueba con otra fecha.',
     serviceTooLongText: (service, horario) =>
-      `Lo sentimos 🙏 No podemos ofrecerte "${service.nombre}" ese día: tiene una duración de ` +
-      `${service.duracionMinutos} min y supera nuestro horario de apertura de ese día ` +
+      `Lo sentimos 🙏 No podemos ofrecerte "${service.nombre}" ese día: no cabe en nuestro horario de apertura de ese día ` +
       `(${formatHour(horario.horaInicio, horario.horaInicioMinuto)}-${formatHour(horario.horaFin, horario.horaFinMinuto)}). ` +
       'Por favor, elige otro día.',
 
@@ -266,7 +265,7 @@ const catalogs = {
     serviceListBody: "Genial! 🙌 Anem a reservar-te una cita. Quin servei vols?",
     serviceListButtonText: 'Veure serveis',
     serviceListSectionTitle: 'Serveis',
-    serviceRowDescription: (precio, min) => `${priceSuffix(precio, 'preu a consultar')} · ${min} min`,
+    serviceRowDescription: (precio) => priceSuffix(precio, 'preu a consultar'),
 
     askDateText: "Perfecte ✂️ Quin dia et va bé? Per exemple: 'demà', 'el divendres', o una data com '10/09'",
     askNameText: 'Com et dius? 😊',
@@ -276,8 +275,7 @@ const catalogs = {
     calendarErrorText: "Hi ha hagut un error consultant el calendari. Torna-ho a provar d'aquí un moment.",
     noSlotsText: 'No queden hores lliures aquest dia. Prova amb una altra data.',
     serviceTooLongText: (service, horario) =>
-      `Ho sentim 🙏 No podem oferir-te "${service.nombre}" aquest dia: té una durada de ` +
-      `${service.duracionMinutos} min i supera el nostre horari d'obertura d'aquell dia ` +
+      `Ho sentim 🙏 No podem oferir-te "${service.nombre}" aquest dia: no hi cap en el nostre horari d'obertura d'aquell dia ` +
       `(${formatHour(horario.horaInicio, horario.horaInicioMinuto)}-${formatHour(horario.horaFin, horario.horaFinMinuto)}). ` +
       'Si us plau, tria un altre dia.',
 
@@ -366,7 +364,7 @@ const catalogs = {
     serviceListBody: "Great! 🙌 Let's book your appointment. Which service would you like?",
     serviceListButtonText: 'View services',
     serviceListSectionTitle: 'Services',
-    serviceRowDescription: (precio, min) => `${pricePrefix(precio, 'price on request')} · ${min} min`,
+    serviceRowDescription: (precio) => pricePrefix(precio, 'price on request'),
 
     askDateText: "Great ✂️ What day works for you? For example: 'tomorrow', 'friday', or a date like '10/09'",
     askNameText: "What's your name? 😊",
@@ -376,8 +374,7 @@ const catalogs = {
     calendarErrorText: 'There was an error checking the calendar. Please try again in a moment.',
     noSlotsText: 'No free slots left that day. Try another date.',
     serviceTooLongText: (service, horario) =>
-      `We're sorry 🙏 We can't offer "${service.nombre}" that day: it takes ` +
-      `${service.duracionMinutos} min, which is longer than our opening hours that day ` +
+      `We're sorry 🙏 We can't offer "${service.nombre}" that day: it doesn't fit in our opening hours that day ` +
       `(${formatHour(horario.horaInicio, horario.horaInicioMinuto)}-${formatHour(horario.horaFin, horario.horaFinMinuto)}). ` +
       'Please choose another day.',
 

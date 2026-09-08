@@ -82,19 +82,20 @@
         }
       },
       "servicios": [
-        { "key": "corte", "nombre": "Corte de pelo", "precio": 15, "duracionMinutos": 30, "categoria": "Corte y barba" },
-        { "key": "corte_barba", "nombre": "Corte de pelo + barba", "precio": 18, "duracionMinutos": 45, "categoria": "Corte y barba" },
-        { "key": "afeitado_barba", "nombre": "Afeitado de barba", "precio": 10, "duracionMinutos": 20, "categoria": "Corte y barba" },
-        { "key": "corte_basico", "nombre": "Corte de pelo básico", "precio": 30, "duracionMinutos": 30, "categoria": "Corte y barba" },
-        { "key": "corte_estilo", "nombre": "Corte de pelo con estilo", "precio": 35, "duracionMinutos": 45, "categoria": "Corte y barba" },
-        { "key": "mechas_tradicionales", "nombre": "Mechas tradicionales", "precio": 90, "duracionMinutos": 120, "categoria": "Color y mechas" },
-        { "key": "mechas_balayage", "nombre": "Mechas balayage", "precio": 100, "duracionMinutos": 150, "categoria": "Color y mechas" },
-        { "key": "corte_color_peinar", "nombre": "Corte + color + lavar y peinar", "precio": 60, "duracionMinutos": 120, "categoria": "Color y mechas" },
-        { "key": "tinte_peinar", "nombre": "Tinte + lavar y peinar", "precio": 45, "duracionMinutos": 90, "categoria": "Color y mechas" },
-        { "key": "alisado_keratina", "nombre": "Alisado de keratina", "precio": 100, "duracionMinutos": 150, "categoria": "Tratamientos" },
-        { "key": "limpieza_facial", "nombre": "Limpieza facial", "precio": 25, "duracionMinutos": 30, "categoria": "Tratamientos" },
-        { "key": "peinado_ocasion", "nombre": "Peinado ocasiones especiales", "precio": 35, "duracionMinutos": 45, "categoria": "Peinados" },
-        { "key": "lavar_peinar", "nombre": "Lavar y peinar", "precio": 20, "duracionMinutos": 20, "categoria": "Peinados" }
+        { "key": "corte", "nombre": "Corte de pelo", "precio": 15, "duracionMinutos": 30, "categoria": "Servicios para hombre" },
+        { "key": "corte_barba", "nombre": "Corte de pelo + barba", "precio": 18, "duracionMinutos": 45, "categoria": "Servicios para hombre", "destacado": true },
+        { "key": "afeitado_barba", "nombre": "Afeitado de barba", "precio": 10, "duracionMinutos": 20, "categoria": "Servicios para hombre" },
+        { "key": "limpieza_facial", "nombre": "Limpieza facial", "precio": 25, "duracionMinutos": 30, "categoria": "Servicios para hombre" },
+        { "key": "corte_basico", "nombre": "Corte de pelo básico", "precio": 30, "duracionMinutos": 30, "categoria": "Servicios para mujer" },
+        { "key": "corte_estilo", "nombre": "Corte de pelo con estilo", "precio": 35, "duracionMinutos": 45, "categoria": "Servicios para mujer" },
+        { "key": "mechas_tradicionales", "nombre": "Mechas tradicionales", "precio": 90, "duracionMinutos": 120, "categoria": "Servicios para mujer" },
+        { "key": "mechas_balayage", "nombre": "Mechas balayage", "precio": 100, "duracionMinutos": 150, "categoria": "Servicios para mujer" },
+        { "key": "corte_color_peinar", "nombre": "Corte + color + lavar y peinar", "precio": 60, "duracionMinutos": 120, "categoria": "Servicios para mujer" },
+        { "key": "alisado_keratina", "nombre": "Alisado de keratina", "precio": 100, "duracionMinutos": 150, "categoria": "Servicios para mujer" },
+        { "key": "tinte_peinar", "nombre": "Tinte + lavar y peinar", "precio": 45, "duracionMinutos": 90, "categoria": "Servicios para mujer" },
+        { "key": "peinado_ocasion", "nombre": "Peinado ocasiones especiales", "precio": 35, "duracionMinutos": 45, "categoria": "Servicios para mujer" },
+        { "key": "lavar_peinar", "nombre": "Lavar y peinar", "precio": 20, "duracionMinutos": 20, "categoria": "Servicios para mujer" },
+        { "key": "limpieza_facial", "nombre": "Limpieza facial", "precio": 25, "duracionMinutos": 30, "categoria": "Servicios para mujer" }
       ],
       "googleCalendar": {
         "calendarId": "416c7c3f1d1fa4c82c9bf87ef6400bb3ae6a1cc50342613c6ca0b841904deeb7@group.calendar.google.com",

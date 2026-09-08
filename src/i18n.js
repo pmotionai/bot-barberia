@@ -29,6 +29,23 @@ function categoriasDeServicios(negocio) {
 }
 
 /**
+ * Servicios de un negocio sin repetir (un mismo servicio puede aparecer
+ * varias veces en negocio.servicios si pertenece a mas de una categoria,
+ * p.ej. "Limpieza facial" en servicios de hombre y de mujer).
+ */
+function serviciosUnicos(negocio) {
+  const seen = new Set();
+  const result = [];
+  for (const s of negocio.servicios) {
+    if (!seen.has(s.key)) {
+      seen.add(s.key);
+      result.push(s);
+    }
+  }
+  return result;
+}
+
+/**
  * Icono de un negocio para un "rol" dado (p.ej. "marca" o "servicio").
  * negocio.emojis en negocios.json puede sobreescribirlo; si no, se usa el
  * icono por defecto (el de barberia, para no cambiar el aspecto de los
@@ -157,7 +174,7 @@ const catalogs = {
     fallbackBody: 'Uy, no te he entendido bien 😅 Elige una opción:',
 
     horariosYPreciosBody: (negocio) => {
-      const servicios = negocio.servicios
+      const servicios = serviciosUnicos(negocio)
         .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'consultar en el momento de la reserva')}`)
         .join('\n');
       return (
@@ -172,7 +189,10 @@ const catalogs = {
       const bloques = categoriasDeServicios(negocio).map((cat) => {
         const servicios = negocio.servicios
           .filter((s) => s.categoria === cat)
-          .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'consultar en el momento de la reserva')}`)
+          .map((s) => {
+            const precio = priceSuffix(s.precio, 'consultar en el momento de la reserva');
+            return `• ${s.nombre}: ${precio}${s.destacado ? ' 🔥 El más elegido' : ''}`;
+          })
           .join('\n');
         return `*${cat}*\n${servicios}`;
       });
@@ -184,7 +204,10 @@ const catalogs = {
     serviceListBody: '¡Genial! 🙌 Vamos a reservarte una cita. ¿Qué servicio quieres?',
     serviceListButtonText: 'Ver servicios',
     serviceListSectionTitle: 'Servicios',
-    serviceRowDescription: (precio) => priceSuffix(precio, 'precio a consultar'),
+    serviceRowDescription: (service) => {
+      const precio = priceSuffix(service.precio, 'precio a consultar');
+      return service.destacado ? `${precio} · 🔥 El más elegido` : precio;
+    },
 
     askDateText: "Perfecto ✂️ ¿Qué día te viene bien? Por ejemplo: 'mañana', 'el viernes', o una fecha como '10/09'",
     askNameText: '¿Cómo te llamas? 😊',
@@ -265,7 +288,7 @@ const catalogs = {
     fallbackBody: "Ui, no t'he entès bé 😅 Tria una opció:",
 
     horariosYPreciosBody: (negocio) => {
-      const servicios = negocio.servicios
+      const servicios = serviciosUnicos(negocio)
         .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'a consultar en el moment de la reserva')}`)
         .join('\n');
       return (
@@ -280,7 +303,10 @@ const catalogs = {
       const bloques = categoriasDeServicios(negocio).map((cat) => {
         const servicios = negocio.servicios
           .filter((s) => s.categoria === cat)
-          .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'a consultar en el moment de la reserva')}`)
+          .map((s) => {
+            const precio = priceSuffix(s.precio, 'a consultar en el moment de la reserva');
+            return `• ${s.nombre}: ${precio}${s.destacado ? ' 🔥 El més triat' : ''}`;
+          })
           .join('\n');
         return `*${cat}*\n${servicios}`;
       });
@@ -292,7 +318,10 @@ const catalogs = {
     serviceListBody: "Genial! 🙌 Anem a reservar-te una cita. Quin servei vols?",
     serviceListButtonText: 'Veure serveis',
     serviceListSectionTitle: 'Serveis',
-    serviceRowDescription: (precio) => priceSuffix(precio, 'preu a consultar'),
+    serviceRowDescription: (service) => {
+      const precio = priceSuffix(service.precio, 'preu a consultar');
+      return service.destacado ? `${precio} · 🔥 El més triat` : precio;
+    },
 
     askDateText: "Perfecte ✂️ Quin dia et va bé? Per exemple: 'demà', 'el divendres', o una data com '10/09'",
     askNameText: 'Com et dius? 😊',
@@ -373,7 +402,7 @@ const catalogs = {
     fallbackBody: "Oops, I didn't quite get that 😅 Pick an option:",
 
     horariosYPreciosBody: (negocio) => {
-      const servicios = negocio.servicios
+      const servicios = serviciosUnicos(negocio)
         .map((s) => `• ${s.nombre}: ${pricePrefix(s.precio, 'to be confirmed at booking')}`)
         .join('\n');
       return (
@@ -388,7 +417,10 @@ const catalogs = {
       const bloques = categoriasDeServicios(negocio).map((cat) => {
         const servicios = negocio.servicios
           .filter((s) => s.categoria === cat)
-          .map((s) => `• ${s.nombre}: ${pricePrefix(s.precio, 'to be confirmed at booking')}`)
+          .map((s) => {
+            const precio = pricePrefix(s.precio, 'to be confirmed at booking');
+            return `• ${s.nombre}: ${precio}${s.destacado ? ' 🔥 Most popular' : ''}`;
+          })
           .join('\n');
         return `*${cat}*\n${servicios}`;
       });
@@ -400,7 +432,10 @@ const catalogs = {
     serviceListBody: "Great! 🙌 Let's book your appointment. Which service would you like?",
     serviceListButtonText: 'View services',
     serviceListSectionTitle: 'Services',
-    serviceRowDescription: (precio) => pricePrefix(precio, 'price on request'),
+    serviceRowDescription: (service) => {
+      const precio = pricePrefix(service.precio, 'price on request');
+      return service.destacado ? `${precio} · 🔥 Most popular` : precio;
+    },
 
     askDateText: "Great ✂️ What day works for you? For example: 'tomorrow', 'friday', or a date like '10/09'",
     askNameText: "What's your name? 😊",

@@ -19,6 +19,15 @@ function pricePrefix(precio, onRequestText) {
   return precio != null ? `€${precio}` : onRequestText;
 }
 
+/** Categorias de un negocio, en el orden en que aparecen sus servicios. */
+function categoriasDeServicios(negocio) {
+  const seen = [];
+  for (const s of negocio.servicios) {
+    if (s.categoria && !seen.includes(s.categoria)) seen.push(s.categoria);
+  }
+  return seen;
+}
+
 /**
  * Icono de un negocio para un "rol" dado (p.ej. "marca" o "servicio").
  * negocio.emojis en negocios.json puede sobreescribirlo; si no, se usa el
@@ -159,7 +168,16 @@ const catalogs = {
     btnReservarCita: '📅 Reservar cita',
     btnMenuPrincipal: '🏠 Menú principal',
 
-    categoryListBody: '¡Genial! 🙌 ¿Qué tipo de servicio buscas?',
+    categoryListBody: (negocio) => {
+      const bloques = categoriasDeServicios(negocio).map((cat) => {
+        const servicios = negocio.servicios
+          .filter((s) => s.categoria === cat)
+          .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'consultar en el momento de la reserva')}`)
+          .join('\n');
+        return `*${cat}*\n${servicios}`;
+      });
+      return `¡Genial! 🙌 Estos son nuestros servicios:\n\n${bloques.join('\n\n')}\n\nElige una categoría para reservar 👇`;
+    },
     categoryListButtonText: 'Ver categorías',
     categoryListSectionTitle: 'Categorías',
 
@@ -258,7 +276,16 @@ const catalogs = {
     btnReservarCita: '📅 Reservar cita',
     btnMenuPrincipal: '🏠 Menú principal',
 
-    categoryListBody: 'Genial! 🙌 Quin tipus de servei busques?',
+    categoryListBody: (negocio) => {
+      const bloques = categoriasDeServicios(negocio).map((cat) => {
+        const servicios = negocio.servicios
+          .filter((s) => s.categoria === cat)
+          .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'a consultar en el moment de la reserva')}`)
+          .join('\n');
+        return `*${cat}*\n${servicios}`;
+      });
+      return `Genial! 🙌 Aquests són els nostres serveis:\n\n${bloques.join('\n\n')}\n\nTria una categoria per reservar 👇`;
+    },
     categoryListButtonText: 'Veure categories',
     categoryListSectionTitle: 'Categories',
 
@@ -357,7 +384,16 @@ const catalogs = {
     btnReservarCita: '📅 Book appointment',
     btnMenuPrincipal: '🏠 Main menu',
 
-    categoryListBody: 'Great! 🙌 What type of service are you looking for?',
+    categoryListBody: (negocio) => {
+      const bloques = categoriasDeServicios(negocio).map((cat) => {
+        const servicios = negocio.servicios
+          .filter((s) => s.categoria === cat)
+          .map((s) => `• ${s.nombre}: ${pricePrefix(s.precio, 'to be confirmed at booking')}`)
+          .join('\n');
+        return `*${cat}*\n${servicios}`;
+      });
+      return `Great! 🙌 Here are our services:\n\n${bloques.join('\n\n')}\n\nChoose a category to book 👇`;
+    },
     categoryListButtonText: 'View categories',
     categoryListSectionTitle: 'Categories',
 

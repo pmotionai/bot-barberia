@@ -121,7 +121,7 @@ function categoryListMessage(negocio, lang) {
   const s = i18n.t(lang);
   return {
     kind: 'list',
-    body: s.categoryListBody,
+    body: s.categoryListBody(negocio),
     buttonText: s.categoryListButtonText,
     sections: [
       {

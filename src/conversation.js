@@ -346,6 +346,17 @@ function handleAwaitingService(negocio, from, input, session) {
     const normalized = normalize(input.text);
     if (isCancelIntent(normalized)) return startCancelFlow(negocio, from, session);
 
+    // Si el cliente escribe el nombre de otra categoria (p.ej. "mujer"
+    // tras haber entrado en "hombre"), le dejamos rectificar sin tener
+    // que reiniciar toda la reserva.
+    if (faq.hasCategories(negocio)) {
+      const category = faq.findCategoryByText(negocio, input.text);
+      if (category && category !== session.category) {
+        session.category = category;
+        return [faq.serviceListMessage(negocio, session.lang, category)];
+      }
+    }
+
     const service = faq.findService(negocio, input.text);
     if (service) return proceedToDate(service, session);
   }

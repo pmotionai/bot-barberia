@@ -46,6 +46,31 @@ function serviciosUnicos(negocio) {
 }
 
 /**
+ * Texto con la lista de servicios y precios de un negocio. Si el negocio
+ * agrupa sus servicios por categoria, se muestran en bloques con el
+ * nombre de la categoria en negrita (un servicio puede repetirse en mas
+ * de un bloque si pertenece a varias categorias); si no, una lista plana
+ * sin repetidos.
+ */
+function serviciosBodyText(negocio, formatPrecio, destacadoSuffix) {
+  const categorias = categoriasDeServicios(negocio);
+  if (categorias.length === 0) {
+    return serviciosUnicos(negocio)
+      .map((s) => `• ${s.nombre}: ${formatPrecio(s.precio)}`)
+      .join('\n');
+  }
+  return categorias
+    .map((cat) => {
+      const servicios = negocio.servicios
+        .filter((s) => s.categoria === cat)
+        .map((s) => `• ${s.nombre}: ${formatPrecio(s.precio)}${s.destacado ? ` ${destacadoSuffix}` : ''}`)
+        .join('\n');
+      return `*${cat}*\n${servicios}`;
+    })
+    .join('\n\n');
+}
+
+/**
  * Icono de un negocio para un "rol" dado (p.ej. "marca" o "servicio").
  * negocio.emojis en negocios.json puede sobreescribirlo; si no, se usa el
  * icono por defecto (el de barberia, para no cambiar el aspecto de los
@@ -174,9 +199,7 @@ const catalogs = {
     fallbackBody: 'Uy, no te he entendido bien 😅 Elige una opción:',
 
     horariosYPreciosBody: (negocio) => {
-      const servicios = serviciosUnicos(negocio)
-        .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'consultar en el momento de la reserva')}`)
-        .join('\n');
+      const servicios = serviciosBodyText(negocio, (p) => priceSuffix(p, 'consultar en el momento de la reserva'), '🔥 El más elegido');
       return (
         `🕒 Nuestro horario:\n${formatSchedule(negocio, 'es')}\n\n` +
         `${emoji(negocio, 'servicio', '✂️')} Nuestros servicios:\n${servicios}`
@@ -186,17 +209,8 @@ const catalogs = {
     btnMenuPrincipal: '🏠 Menú principal',
 
     categoryListBody: (negocio) => {
-      const bloques = categoriasDeServicios(negocio).map((cat) => {
-        const servicios = negocio.servicios
-          .filter((s) => s.categoria === cat)
-          .map((s) => {
-            const precio = priceSuffix(s.precio, 'consultar en el momento de la reserva');
-            return `• ${s.nombre}: ${precio}${s.destacado ? ' 🔥 El más elegido' : ''}`;
-          })
-          .join('\n');
-        return `*${cat}*\n${servicios}`;
-      });
-      return `¡Genial! 🙌 Estos son nuestros servicios:\n\n${bloques.join('\n\n')}\n\nElige una categoría para reservar 👇`;
+      const servicios = serviciosBodyText(negocio, (p) => priceSuffix(p, 'consultar en el momento de la reserva'), '🔥 El más elegido');
+      return `¡Genial! 🙌 Estos son nuestros servicios:\n\n${servicios}\n\nElige una categoría para reservar 👇`;
     },
     categoryListButtonText: 'Ver categorías',
     categoryListSectionTitle: 'Categorías',
@@ -288,9 +302,7 @@ const catalogs = {
     fallbackBody: "Ui, no t'he entès bé 😅 Tria una opció:",
 
     horariosYPreciosBody: (negocio) => {
-      const servicios = serviciosUnicos(negocio)
-        .map((s) => `• ${s.nombre}: ${priceSuffix(s.precio, 'a consultar en el moment de la reserva')}`)
-        .join('\n');
+      const servicios = serviciosBodyText(negocio, (p) => priceSuffix(p, 'a consultar en el moment de la reserva'), '🔥 El més triat');
       return (
         `🕒 El nostre horari:\n${formatSchedule(negocio, 'ca')}\n\n` +
         `${emoji(negocio, 'servicio', '✂️')} Els nostres serveis:\n${servicios}`
@@ -300,17 +312,8 @@ const catalogs = {
     btnMenuPrincipal: '🏠 Menú principal',
 
     categoryListBody: (negocio) => {
-      const bloques = categoriasDeServicios(negocio).map((cat) => {
-        const servicios = negocio.servicios
-          .filter((s) => s.categoria === cat)
-          .map((s) => {
-            const precio = priceSuffix(s.precio, 'a consultar en el moment de la reserva');
-            return `• ${s.nombre}: ${precio}${s.destacado ? ' 🔥 El més triat' : ''}`;
-          })
-          .join('\n');
-        return `*${cat}*\n${servicios}`;
-      });
-      return `Genial! 🙌 Aquests són els nostres serveis:\n\n${bloques.join('\n\n')}\n\nTria una categoria per reservar 👇`;
+      const servicios = serviciosBodyText(negocio, (p) => priceSuffix(p, 'a consultar en el moment de la reserva'), '🔥 El més triat');
+      return `Genial! 🙌 Aquests són els nostres serveis:\n\n${servicios}\n\nTria una categoria per reservar 👇`;
     },
     categoryListButtonText: 'Veure categories',
     categoryListSectionTitle: 'Categories',
@@ -402,9 +405,7 @@ const catalogs = {
     fallbackBody: "Oops, I didn't quite get that 😅 Pick an option:",
 
     horariosYPreciosBody: (negocio) => {
-      const servicios = serviciosUnicos(negocio)
-        .map((s) => `• ${s.nombre}: ${pricePrefix(s.precio, 'to be confirmed at booking')}`)
-        .join('\n');
+      const servicios = serviciosBodyText(negocio, (p) => pricePrefix(p, 'to be confirmed at booking'), '🔥 Most popular');
       return (
         `🕒 Our hours:\n${formatSchedule(negocio, 'en')}\n\n` +
         `${emoji(negocio, 'servicio', '✂️')} Our services:\n${servicios}`
@@ -414,17 +415,8 @@ const catalogs = {
     btnMenuPrincipal: '🏠 Main menu',
 
     categoryListBody: (negocio) => {
-      const bloques = categoriasDeServicios(negocio).map((cat) => {
-        const servicios = negocio.servicios
-          .filter((s) => s.categoria === cat)
-          .map((s) => {
-            const precio = pricePrefix(s.precio, 'to be confirmed at booking');
-            return `• ${s.nombre}: ${precio}${s.destacado ? ' 🔥 Most popular' : ''}`;
-          })
-          .join('\n');
-        return `*${cat}*\n${servicios}`;
-      });
-      return `Great! 🙌 Here are our services:\n\n${bloques.join('\n\n')}\n\nChoose a category to book 👇`;
+      const servicios = serviciosBodyText(negocio, (p) => pricePrefix(p, 'to be confirmed at booking'), '🔥 Most popular');
+      return `Great! 🙌 Here are our services:\n\n${servicios}\n\nChoose a category to book 👇`;
     },
     categoryListButtonText: 'View categories',
     categoryListSectionTitle: 'Categories',

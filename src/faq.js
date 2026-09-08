@@ -117,6 +117,31 @@ function slugifyCategory(name) {
     .replace(/^_+|_+$/g, '');
 }
 
+// Palabras genericas que no distinguen una categoria de otra (p.ej.
+// "Servicios para hombre" y "Servicios para mujer" comparten "servicios"
+// y "para"), asi que se ignoran al buscar una categoria por texto libre.
+const CATEGORY_STOPWORDS = new Set(['de', 'del', 'al', 'la', 'el', 'los', 'las', 'para', 'y', 'o', 'un', 'una', 'servicio', 'servicios', 'service', 'services']);
+
+/** Busca una categoria del negocio mencionada en un texto libre (p.ej. "mujer" o "quiero ver hombre"). */
+function findCategoryByText(negocio, text) {
+  const normalized = normalize(text);
+  const categorias = getCategorias(negocio);
+
+  const byFullName = categorias.find((cat) => {
+    const name = normalize(cat);
+    return normalized.includes(name) || name.includes(normalized);
+  });
+  if (byFullName) return byFullName;
+
+  const bySignificantWord = categorias.find((cat) =>
+    normalize(cat)
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 4 && !CATEGORY_STOPWORDS.has(w))
+      .some((w) => new RegExp(`\\b${w}\\b`).test(normalized))
+  );
+  return bySignificantWord || null;
+}
+
 function categoryListMessage(negocio, lang) {
   const s = i18n.t(lang);
   return {
@@ -301,6 +326,7 @@ module.exports = {
   normalize,
   findService,
   findServiceByKey,
+  findCategoryByText,
   eventServiceName,
   welcomeMessage,
   fallbackMessage,

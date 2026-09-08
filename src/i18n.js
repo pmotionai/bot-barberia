@@ -39,10 +39,12 @@ const CLOSED_LABEL = { es: 'Cerrado', ca: 'Tancat', en: 'Closed' };
 
 /**
  * Devuelve, para cada dia de lunes(1) a domingo(7), si el negocio abre ese
- * dia y con que horario. Soporta tanto el formato antiguo (horaInicio/
- * horaFin + diasLaborables, mismo horario todos los dias abiertos) como
- * negocio.horario.horarioPorDia ({"1": {horaInicio,horaFin,...}, ...}; los
- * dias ausentes de horarioPorDia se consideran cerrados).
+ * dia y con que tramos horarios (normalmente uno, pero puede haber varios
+ * si hay un descanso entre medio, p.ej. mañana y tarde). Soporta tanto el
+ * formato antiguo (horaInicio/horaFin + diasLaborables, mismo tramo todos
+ * los dias abiertos) como negocio.horario.horarioPorDia, cuyo valor por
+ * dia puede ser un tramo {horaInicio,horaFin,...} o un array de tramos;
+ * los dias ausentes de horarioPorDia se consideran cerrados.
  */
 function scheduleEntries(negocio) {
   const { horario } = negocio;
@@ -52,16 +54,21 @@ function scheduleEntries(negocio) {
   const entries = [];
   for (let day = 1; day <= 7; day++) {
     if (perDay) {
-      const h = perDay[day];
-      entries.push(h ? { day, open: true, ...h } : { day, open: false });
+      const raw = perDay[day];
+      const ranges = raw ? (Array.isArray(raw) ? raw : [raw]) : null;
+      entries.push(ranges ? { day, open: true, ranges } : { day, open: false });
     } else if (diasLaborables.includes(day)) {
       entries.push({
         day,
         open: true,
-        horaInicio: horario.horaInicio,
-        horaFin: horario.horaFin,
-        horaInicioMinuto: horario.horaInicioMinuto,
-        horaFinMinuto: horario.horaFinMinuto,
+        ranges: [
+          {
+            horaInicio: horario.horaInicio,
+            horaFin: horario.horaFin,
+            horaInicioMinuto: horario.horaInicioMinuto,
+            horaFinMinuto: horario.horaFinMinuto,
+          },
+        ],
       });
     } else {
       entries.push({ day, open: false });
@@ -70,10 +77,23 @@ function scheduleEntries(negocio) {
   return entries;
 }
 
+function rangesEqual(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every(
+    (r, i) =>
+      r.horaInicio === b[i].horaInicio &&
+      r.horaFin === b[i].horaFin &&
+      (r.horaInicioMinuto || 0) === (b[i].horaInicioMinuto || 0) &&
+      (r.horaFinMinuto || 0) === (b[i].horaFinMinuto || 0)
+  );
+}
+
 /**
  * Texto multilinea con el horario completo (lunes a domingo), agrupando
  * dias consecutivos con el mismo horario (o consecutivos cerrados) en una
- * sola linea. Los dias cerrados se muestran explicitamente.
+ * sola linea. Los dias cerrados se muestran explicitamente. Si un dia
+ * tiene varios tramos, se listan separados por comas (p.ej. "10:30-13:30,
+ * 16:00-20:30").
  */
 function formatSchedule(negocio, lang) {
   const entries = scheduleEntries(negocio);
@@ -88,11 +108,7 @@ function formatSchedule(negocio, lang) {
       last &&
       last.open === entry.open &&
       entry.day === last.lastDay + 1 &&
-      (!entry.open ||
-        (last.horaInicio === entry.horaInicio &&
-          last.horaFin === entry.horaFin &&
-          (last.horaInicioMinuto || 0) === (entry.horaInicioMinuto || 0) &&
-          (last.horaFinMinuto || 0) === (entry.horaFinMinuto || 0)));
+      (!entry.open || rangesEqual(last.ranges, entry.ranges));
     if (sameGroup) {
       last.lastDay = entry.day;
     } else {
@@ -107,7 +123,7 @@ function formatSchedule(negocio, lang) {
           ? names[g.firstDay - 1]
           : `${names[g.firstDay - 1]} ${connector} ${names[g.lastDay - 1]}`;
       const hoursLabel = g.open
-        ? `${formatHour(g.horaInicio, g.horaInicioMinuto)}-${formatHour(g.horaFin, g.horaFinMinuto)}`
+        ? g.ranges.map((r) => `${formatHour(r.horaInicio, r.horaInicioMinuto)}-${formatHour(r.horaFin, r.horaFinMinuto)}`).join(', ')
         : closedLabel;
       return `${dayLabel}: ${hoursLabel}`;
     })
@@ -142,6 +158,10 @@ const catalogs = {
     },
     btnReservarCita: '📅 Reservar cita',
     btnMenuPrincipal: '🏠 Menú principal',
+
+    categoryListBody: '¡Genial! 🙌 ¿Qué tipo de servicio buscas?',
+    categoryListButtonText: 'Ver categorías',
+    categoryListSectionTitle: 'Categorías',
 
     serviceListBody: '¡Genial! 🙌 Vamos a reservarte una cita. ¿Qué servicio quieres?',
     serviceListButtonText: 'Ver servicios',
@@ -239,6 +259,10 @@ const catalogs = {
     btnReservarCita: '📅 Reservar cita',
     btnMenuPrincipal: '🏠 Menú principal',
 
+    categoryListBody: 'Genial! 🙌 Quin tipus de servei busques?',
+    categoryListButtonText: 'Veure categories',
+    categoryListSectionTitle: 'Categories',
+
     serviceListBody: "Genial! 🙌 Anem a reservar-te una cita. Quin servei vols?",
     serviceListButtonText: 'Veure serveis',
     serviceListSectionTitle: 'Serveis',
@@ -334,6 +358,10 @@ const catalogs = {
     },
     btnReservarCita: '📅 Book appointment',
     btnMenuPrincipal: '🏠 Main menu',
+
+    categoryListBody: 'Great! 🙌 What type of service are you looking for?',
+    categoryListButtonText: 'View categories',
+    categoryListSectionTitle: 'Categories',
 
     serviceListBody: "Great! 🙌 Let's book your appointment. Which service would you like?",
     serviceListButtonText: 'View services',

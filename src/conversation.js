@@ -161,8 +161,10 @@ const LANGUAGE_IDS = { lang_es: 'es', lang_ca: 'ca', lang_en: 'en' };
 function repromptForState(negocio, session) {
   const lang = session.lang;
   switch (session.state) {
+    case 'awaiting_category':
+      return [faq.categoryListMessage(negocio, lang)];
     case 'awaiting_service':
-      return [faq.serviceListMessage(negocio, lang)];
+      return [faq.serviceListMessage(negocio, lang, session.category)];
     case 'awaiting_date':
       return [faq.askDateMessage(lang)];
     case 'awaiting_slot':
@@ -238,7 +240,13 @@ async function handleIncomingMessage(negocio, from, message) {
   // parte concreta quiere cambiar, reiniciamos la eleccion desde el
   // servicio (mas simple y predecible que quedarse repitiendo el mismo
   // mensaje sin reconocer la peticion).
-  const RESERVATION_STATES = ['awaiting_service', 'awaiting_date', 'awaiting_slot', 'awaiting_confirmation'];
+  const RESERVATION_STATES = [
+    'awaiting_category',
+    'awaiting_service',
+    'awaiting_date',
+    'awaiting_slot',
+    'awaiting_confirmation',
+  ];
   if (
     input.kind === 'text' &&
     RESERVATION_STATES.includes(session.state) &&
@@ -251,6 +259,8 @@ async function handleIncomingMessage(negocio, from, message) {
   switch (session.state) {
     case 'idle':
       return handleIdle(negocio, from, input, session);
+    case 'awaiting_category':
+      return handleAwaitingCategory(negocio, from, input, session);
     case 'awaiting_service':
       return handleAwaitingService(negocio, from, input, session);
     case 'awaiting_date':
@@ -292,8 +302,37 @@ async function handleIdle(negocio, from, input, session) {
 }
 
 function startReservationFlow(negocio, session) {
+  session.category = null;
+  if (faq.hasCategories(negocio)) {
+    session.state = 'awaiting_category';
+    return [faq.categoryListMessage(negocio, session.lang)];
+  }
   session.state = 'awaiting_service';
   return [faq.serviceListMessage(negocio, session.lang)];
+}
+
+function handleAwaitingCategory(negocio, from, input, session) {
+  if (input.kind === 'list' && input.id.startsWith('category_')) {
+    const slug = input.id.slice('category_'.length);
+    const match = faq.getCategorias(negocio).find((cat) => faq.slugifyCategory(cat) === slug);
+    if (match) {
+      session.category = match;
+      session.state = 'awaiting_service';
+      return [faq.serviceListMessage(negocio, session.lang, match)];
+    }
+  }
+
+  // Tambien se admite escribir el nombre del servicio directamente,
+  // saltandose la categoria.
+  if (input.kind === 'text') {
+    const normalized = normalize(input.text);
+    if (isCancelIntent(normalized)) return startCancelFlow(negocio, from, session);
+
+    const service = faq.findService(negocio, input.text);
+    if (service) return proceedToDate(service, session);
+  }
+
+  return [faq.categoryListMessage(negocio, session.lang)];
 }
 
 function handleAwaitingService(negocio, from, input, session) {
@@ -311,7 +350,7 @@ function handleAwaitingService(negocio, from, input, session) {
     if (service) return proceedToDate(service, session);
   }
 
-  return [faq.serviceListMessage(negocio, session.lang)];
+  return [faq.serviceListMessage(negocio, session.lang, session.category)];
 }
 
 function proceedToDate(service, session) {
@@ -345,11 +384,13 @@ async function handleAwaitingDate(negocio, from, input, session) {
     return [{ kind: 'text', text: s.dayClosedText }];
   }
 
-  const dayHours = googleCalendar.getDayHours(negocio, day);
-  const windowMinutes =
-    dayHours.horaFin * 60 + (dayHours.horaFinMinuto || 0) - (dayHours.horaInicio * 60 + (dayHours.horaInicioMinuto || 0));
-  if (session.service.duracionMinutos > windowMinutes) {
-    return [{ kind: 'text', text: s.serviceTooLongText(session.service, dayHours) }];
+  // Un dia puede tener varios tramos (p.ej. mañana y tarde); basta con que
+  // el servicio quepa en el tramo mas largo de ese dia.
+  const ranges = googleCalendar.getDayRanges(negocio, day);
+  const rangeMinutes = (r) => r.horaFin * 60 + (r.horaFinMinuto || 0) - (r.horaInicio * 60 + (r.horaInicioMinuto || 0));
+  const longestRange = ranges.reduce((best, r) => (rangeMinutes(r) > rangeMinutes(best) ? r : best));
+  if (session.service.duracionMinutos > rangeMinutes(longestRange)) {
+    return [{ kind: 'text', text: s.serviceTooLongText(session.service, longestRange) }];
   }
 
   let slots;

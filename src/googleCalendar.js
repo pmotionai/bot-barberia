@@ -85,24 +85,56 @@ async function getCalendarId(negocio) {
  * @returns {Promise<DateTime[]>} lista de horas de inicio disponibles
  */
 /**
- * Devuelve el horario (horaInicio/horaFin/...) de un negocio para el dia de
- * la semana concreto de `day`, o null si ese dia esta cerrado.
+ * Devuelve los tramos horarios (cada uno con horaInicio/horaFin/...) de un
+ * negocio para el dia de la semana concreto de `day`, o null si ese dia
+ * esta cerrado. Normalmente hay un solo tramo, pero un dia puede tener
+ * varios (p.ej. mañana y tarde, con un descanso al mediodia entre medio).
+ * Soporta tanto el formato antiguo (horaInicio/horaFin + diasLaborables,
+ * un tramo igual todos los dias) como negocio.horario.horarioPorDia, cuyo
+ * valor por dia puede ser un solo tramo {horaInicio,horaFin,...} o un
+ * array de tramos.
  */
-function getDayHours(negocio, day) {
-  return negocio.horario.horarioPorDia ? negocio.horario.horarioPorDia[day.weekday] || null : negocio.horario;
+function getDayRanges(negocio, day) {
+  const { horario } = negocio;
+
+  if (horario.horarioPorDia) {
+    const entry = horario.horarioPorDia[day.weekday];
+    if (!entry) return null;
+    return Array.isArray(entry) ? entry : [entry];
+  }
+
+  const diasLaborables = horario.diasLaborables || [1, 2, 3, 4, 5];
+  if (!diasLaborables.includes(day.weekday)) return null;
+  return [
+    {
+      horaInicio: horario.horaInicio,
+      horaFin: horario.horaFin,
+      horaInicioMinuto: horario.horaInicioMinuto,
+      horaFinMinuto: horario.horaFinMinuto,
+    },
+  ];
+}
+
+function rangeStart(day, range) {
+  return day.set({ hour: range.horaInicio, minute: range.horaInicioMinuto || 0, second: 0, millisecond: 0 });
+}
+
+function rangeEnd(day, range) {
+  return day.set({ hour: range.horaFin, minute: range.horaFinMinuto || 0, second: 0, millisecond: 0 });
 }
 
 async function getAvailableSlots(negocio, day, durationMinutes) {
   const calendar = await getCalendarClient();
   const calendarId = await getCalendarId(negocio);
-  const dayConfig = getDayHours(negocio, day);
-  if (!dayConfig) {
+  const ranges = getDayRanges(negocio, day);
+  if (!ranges || ranges.length === 0) {
     throw new Error(`El negocio "${negocio.nombre}" no tiene horario configurado para ese día.`);
   }
-  const { horaInicio, horaFin, horaInicioMinuto = 0, horaFinMinuto = 0 } = dayConfig;
 
-  const dayStart = day.set({ hour: horaInicio, minute: horaInicioMinuto, second: 0, millisecond: 0 });
-  const dayEnd = day.set({ hour: horaFin, minute: horaFinMinuto, second: 0, millisecond: 0 });
+  // Una sola consulta de disponibilidad para todo el dia, desde el inicio
+  // del primer tramo hasta el fin del ultimo.
+  const dayStart = rangeStart(day, ranges[0]);
+  const dayEnd = rangeEnd(day, ranges[ranges.length - 1]);
 
   const { data } = await calendar.freebusy.query({
     requestBody: {
@@ -119,19 +151,26 @@ async function getAvailableSlots(negocio, day, durationMinutes) {
 
   const now = DateTime.now().setZone(negocio.timezone);
   const slots = [];
-  let cursor = dayStart;
   const slotStepMinutes = 30;
 
-  while (cursor.plus({ minutes: durationMinutes }) <= dayEnd) {
-    const slotEnd = cursor.plus({ minutes: durationMinutes });
-    const isPast = cursor < now;
-    const overlapsBusy = busyPeriods.some((busy) => cursor < busy.end && slotEnd > busy.start);
+  // Cada tramo se recorre por separado, para que ningun hueco propuesto
+  // cruce un descanso entre tramos (p.ej. la comida de 13:30 a 16:00).
+  for (const range of ranges) {
+    const start = rangeStart(day, range);
+    const end = rangeEnd(day, range);
+    let cursor = start;
 
-    if (!isPast && !overlapsBusy) {
-      slots.push(cursor);
+    while (cursor.plus({ minutes: durationMinutes }) <= end) {
+      const slotEnd = cursor.plus({ minutes: durationMinutes });
+      const isPast = cursor < now;
+      const overlapsBusy = busyPeriods.some((busy) => cursor < busy.end && slotEnd > busy.start);
+
+      if (!isPast && !overlapsBusy) {
+        slots.push(cursor);
+      }
+
+      cursor = cursor.plus({ minutes: slotStepMinutes });
     }
-
-    cursor = cursor.plus({ minutes: slotStepMinutes });
   }
 
   return slots;
@@ -199,7 +238,7 @@ async function cancelEvent(negocio, eventId) {
 }
 
 module.exports = {
-  getDayHours,
+  getDayRanges,
   getAvailableSlots,
   createEvent,
   findUpcomingEvents,

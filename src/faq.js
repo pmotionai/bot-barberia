@@ -97,16 +97,63 @@ function horariosPreciosMessage(negocio, lang) {
   };
 }
 
-function serviceListMessage(negocio, lang) {
+/** ¿Este negocio agrupa sus servicios por categoria? */
+function hasCategories(negocio) {
+  return negocio.servicios.some((s) => s.categoria);
+}
+
+/** Categorias del negocio, en el orden en que aparecen sus servicios. */
+function getCategorias(negocio) {
+  const seen = [];
+  for (const s of negocio.servicios) {
+    if (s.categoria && !seen.includes(s.categoria)) seen.push(s.categoria);
+  }
+  return seen;
+}
+
+function slugifyCategory(name) {
+  return normalize(name)
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function categoryListMessage(negocio, lang) {
   const s = i18n.t(lang);
+  return {
+    kind: 'list',
+    body: s.categoryListBody,
+    buttonText: s.categoryListButtonText,
+    sections: [
+      {
+        title: s.categoryListSectionTitle,
+        rows: getCategorias(negocio)
+          .slice(0, MAX_LIST_ROWS)
+          .map((cat) => ({
+            id: `category_${slugifyCategory(cat)}`,
+            title: truncate(cat, ROW_TITLE_MAX),
+          })),
+      },
+    ],
+  };
+}
+
+/**
+ * Lista de servicios para reservar. Si se indica `categoria`, solo se
+ * muestran los servicios de esa categoria (para negocios con muchos
+ * servicios agrupados, donde mostrarlos todos de golpe superaria el
+ * limite de 10 filas de una lista de WhatsApp).
+ */
+function serviceListMessage(negocio, lang, categoria) {
+  const s = i18n.t(lang);
+  const servicios = categoria ? negocio.servicios.filter((srv) => srv.categoria === categoria) : negocio.servicios;
   return {
     kind: 'list',
     body: s.serviceListBody,
     buttonText: s.serviceListButtonText,
     sections: [
       {
-        title: s.serviceListSectionTitle,
-        rows: negocio.servicios.slice(0, MAX_LIST_ROWS).map((srv) => ({
+        title: truncate(categoria || s.serviceListSectionTitle, ROW_TITLE_MAX),
+        rows: servicios.slice(0, MAX_LIST_ROWS).map((srv) => ({
           id: `service_${srv.key}`,
           title: truncate(srv.nombre, ROW_TITLE_MAX),
           description: truncate(s.serviceRowDescription(srv.precio, srv.duracionMinutos), ROW_DESC_MAX),
@@ -258,6 +305,10 @@ module.exports = {
   welcomeMessage,
   fallbackMessage,
   horariosPreciosMessage,
+  hasCategories,
+  getCategorias,
+  slugifyCategory,
+  categoryListMessage,
   serviceListMessage,
   askDateMessage,
   askNameMessage,

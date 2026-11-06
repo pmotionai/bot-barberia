@@ -1,37 +1,32 @@
 {
   "negocios": [
     {
-      "id": "barber-paris",
-      "nombre": "Barber Paris",
-      "phoneNumberId": "1270395019495649",
-      "timezone": "Europe/Madrid",
-      "horario": {
-        "diasLaborables": [1, 2, 3, 4, 5],
-        "horaInicio": 9,
-        "horaFin": 17
-      },
-      "servicios": [
-        { "key": "corte", "nombre": "Corte de pelo", "precio": 15, "duracionMinutos": 30 },
-        { "key": "barba", "nombre": "Barba", "precio": 10, "duracionMinutos": 20 },
-        { "key": "corte_barba", "nombre": "Corte + barba", "precio": 22, "duracionMinutos": 45 }
-      ],
-      "googleCalendar": {
-        "calendarId": "416c7c3f1d1fa4c82c9bf87ef6400bb3ae6a1cc50342613c6ca0b841904deeb7@group.calendar.google.com",
-        "calendarName": "Citas BotBarberia"
-      }
-    },
-    {
       "id": "nagai-perruqueria",
       "nombre": "Nagai Perruqueria",
       "phoneNumberId": "1270395019495649",
       "timezone": "Europe/Madrid",
       "horario": {
         "horarioPorDia": {
-          "1": { "horaInicio": 9, "horaFin": 18 },
-          "3": { "horaInicio": 9, "horaFin": 18 },
-          "4": { "horaInicio": 9, "horaFin": 18 },
-          "5": { "horaInicio": 9, "horaFin": 18 },
-          "6": { "horaInicio": 9, "horaFin": 14 }
+          "1": {
+            "horaInicio": 9,
+            "horaFin": 18
+          },
+          "3": {
+            "horaInicio": 9,
+            "horaFin": 18
+          },
+          "4": {
+            "horaInicio": 9,
+            "horaFin": 18
+          },
+          "5": {
+            "horaInicio": 9,
+            "horaFin": 18
+          },
+          "6": {
+            "horaInicio": 9,
+            "horaFin": 14
+          }
         }
       },
       "emojis": {
@@ -39,12 +34,42 @@
         "servicio": "💇‍♀️"
       },
       "servicios": [
-        { "key": "color_raiz", "nombre": "Color raíz", "precio": 24, "duracionMinutos": 60 },
-        { "key": "balayage_caramelo", "nombre": "Balayage caramelo", "precio": 95, "duracionMinutos": 120 },
-        { "key": "absolut_repair", "nombre": "Absolut Repair Molecular (tratamiento)", "precio": 30, "duracionMinutos": 30 },
-        { "key": "serioxil", "nombre": "Serioxil, tratamiento repoblación", "precio": 49, "duracionMinutos": 30 },
-        { "key": "manicura_pedicura", "nombre": "Manicura + Pedicura semipermanente", "precio": null, "duracionMinutos": 75 },
-        { "key": "corte", "nombre": "Corte de pelo", "precio": null, "duracionMinutos": 30 }
+        {
+          "key": "color_raiz",
+          "nombre": "Color raíz",
+          "precio": 24,
+          "duracionMinutos": 60
+        },
+        {
+          "key": "balayage_caramelo",
+          "nombre": "Balayage caramelo",
+          "precio": 95,
+          "duracionMinutos": 120
+        },
+        {
+          "key": "absolut_repair",
+          "nombre": "Absolut Repair Molecular (tratamiento)",
+          "precio": 30,
+          "duracionMinutos": 30
+        },
+        {
+          "key": "serioxil",
+          "nombre": "Serioxil, tratamiento repoblación",
+          "precio": 49,
+          "duracionMinutos": 30
+        },
+        {
+          "key": "manicura_pedicura",
+          "nombre": "Manicura + Pedicura semipermanente",
+          "precio": null,
+          "duracionMinutos": 75
+        },
+        {
+          "key": "corte",
+          "nombre": "Corte de pelo",
+          "precio": null,
+          "duracionMinutos": 30
+        }
       ],
       "googleCalendar": {
         "calendarId": "416c7c3f1d1fa4c82c9bf87ef6400bb3ae6a1cc50342613c6ca0b841904deeb7@group.calendar.google.com",
@@ -59,43 +84,273 @@
       "horario": {
         "horarioPorDia": {
           "1": [
-            { "horaInicio": 10, "horaInicioMinuto": 30, "horaFin": 13, "horaFinMinuto": 30 },
-            { "horaInicio": 16, "horaFin": 20, "horaFinMinuto": 30 }
+            {
+              "horaInicio": 10,
+              "horaInicioMinuto": 30,
+              "horaFin": 13,
+              "horaFinMinuto": 30
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 20,
+              "horaFinMinuto": 30
+            }
           ],
           "2": [
-            { "horaInicio": 10, "horaInicioMinuto": 30, "horaFin": 13, "horaFinMinuto": 30 },
-            { "horaInicio": 16, "horaFin": 20, "horaFinMinuto": 30 }
+            {
+              "horaInicio": 10,
+              "horaInicioMinuto": 30,
+              "horaFin": 13,
+              "horaFinMinuto": 30
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 20,
+              "horaFinMinuto": 30
+            }
           ],
           "3": [
-            { "horaInicio": 10, "horaInicioMinuto": 30, "horaFin": 13, "horaFinMinuto": 30 },
-            { "horaInicio": 16, "horaFin": 20, "horaFinMinuto": 30 }
+            {
+              "horaInicio": 10,
+              "horaInicioMinuto": 30,
+              "horaFin": 13,
+              "horaFinMinuto": 30
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 20,
+              "horaFinMinuto": 30
+            }
           ],
           "4": [
-            { "horaInicio": 10, "horaInicioMinuto": 30, "horaFin": 13, "horaFinMinuto": 30 },
-            { "horaInicio": 16, "horaFin": 20, "horaFinMinuto": 30 }
+            {
+              "horaInicio": 10,
+              "horaInicioMinuto": 30,
+              "horaFin": 13,
+              "horaFinMinuto": 30
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 20,
+              "horaFinMinuto": 30
+            }
           ],
           "5": [
-            { "horaInicio": 10, "horaInicioMinuto": 30, "horaFin": 13, "horaFinMinuto": 30 },
-            { "horaInicio": 16, "horaFin": 20, "horaFinMinuto": 30 }
+            {
+              "horaInicio": 10,
+              "horaInicioMinuto": 30,
+              "horaFin": 13,
+              "horaFinMinuto": 30
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 20,
+              "horaFinMinuto": 30
+            }
           ],
-          "6": [{ "horaInicio": 10, "horaInicioMinuto": 30, "horaFin": 17 }]
+          "6": [
+            {
+              "horaInicio": 10,
+              "horaInicioMinuto": 30,
+              "horaFin": 17
+            }
+          ]
         }
       },
       "servicios": [
-        { "key": "corte", "nombre": "Corte de pelo", "precio": 15, "duracionMinutos": 30, "categoria": "Servicios para hombre" },
-        { "key": "corte_barba", "nombre": "Corte de pelo + barba", "precio": 18, "duracionMinutos": 45, "categoria": "Servicios para hombre", "destacado": true },
-        { "key": "afeitado_barba", "nombre": "Afeitado de barba", "precio": 10, "duracionMinutos": 20, "categoria": "Servicios para hombre" },
-        { "key": "limpieza_facial", "nombre": "Limpieza facial", "precio": 25, "duracionMinutos": 30, "categoria": "Servicios para hombre" },
-        { "key": "corte_basico", "nombre": "Corte de pelo básico", "precio": 30, "duracionMinutos": 30, "categoria": "Servicios para mujer" },
-        { "key": "corte_estilo", "nombre": "Corte de pelo con estilo", "precio": 35, "duracionMinutos": 45, "categoria": "Servicios para mujer" },
-        { "key": "mechas_tradicionales", "nombre": "Mechas tradicionales", "precio": 90, "duracionMinutos": 120, "categoria": "Servicios para mujer" },
-        { "key": "mechas_balayage", "nombre": "Mechas balayage", "precio": 100, "duracionMinutos": 150, "categoria": "Servicios para mujer" },
-        { "key": "corte_color_peinar", "nombre": "Corte + color + lavar y peinar", "precio": 60, "duracionMinutos": 120, "categoria": "Servicios para mujer" },
-        { "key": "alisado_keratina", "nombre": "Alisado de keratina", "precio": 100, "duracionMinutos": 150, "categoria": "Servicios para mujer" },
-        { "key": "tinte_peinar", "nombre": "Tinte + lavar y peinar", "precio": 45, "duracionMinutos": 90, "categoria": "Servicios para mujer" },
-        { "key": "peinado_ocasion", "nombre": "Peinado ocasiones especiales", "precio": 35, "duracionMinutos": 45, "categoria": "Servicios para mujer" },
-        { "key": "lavar_peinar", "nombre": "Lavar y peinar", "precio": 20, "duracionMinutos": 20, "categoria": "Servicios para mujer" },
-        { "key": "limpieza_facial", "nombre": "Limpieza facial", "precio": 25, "duracionMinutos": 30, "categoria": "Servicios para mujer" }
+        {
+          "key": "corte",
+          "nombre": "Corte de pelo",
+          "precio": 15,
+          "duracionMinutos": 30,
+          "categoria": "Servicios para hombre"
+        },
+        {
+          "key": "corte_barba",
+          "nombre": "Corte de pelo + barba",
+          "precio": 18,
+          "duracionMinutos": 45,
+          "categoria": "Servicios para hombre",
+          "destacado": true
+        },
+        {
+          "key": "afeitado_barba",
+          "nombre": "Afeitado de barba",
+          "precio": 10,
+          "duracionMinutos": 20,
+          "categoria": "Servicios para hombre"
+        },
+        {
+          "key": "limpieza_facial",
+          "nombre": "Limpieza facial",
+          "precio": 25,
+          "duracionMinutos": 30,
+          "categoria": "Servicios para hombre"
+        },
+        {
+          "key": "corte_basico",
+          "nombre": "Corte de pelo básico",
+          "precio": 30,
+          "duracionMinutos": 30,
+          "categoria": "Servicios para mujer"
+        },
+        {
+          "key": "corte_estilo",
+          "nombre": "Corte de pelo con estilo",
+          "precio": 35,
+          "duracionMinutos": 45,
+          "categoria": "Servicios para mujer"
+        },
+        {
+          "key": "mechas_tradicionales",
+          "nombre": "Mechas tradicionales",
+          "precio": 90,
+          "duracionMinutos": 120,
+          "categoria": "Servicios para mujer"
+        },
+        {
+          "key": "mechas_balayage",
+          "nombre": "Mechas balayage",
+          "precio": 100,
+          "duracionMinutos": 150,
+          "categoria": "Servicios para mujer"
+        },
+        {
+          "key": "corte_color_peinar",
+          "nombre": "Corte + color + lavar y peinar",
+          "precio": 60,
+          "duracionMinutos": 120,
+          "categoria": "Servicios para mujer"
+        },
+        {
+          "key": "alisado_keratina",
+          "nombre": "Alisado de keratina",
+          "precio": 100,
+          "duracionMinutos": 150,
+          "categoria": "Servicios para mujer"
+        },
+        {
+          "key": "tinte_peinar",
+          "nombre": "Tinte + lavar y peinar",
+          "precio": 45,
+          "duracionMinutos": 90,
+          "categoria": "Servicios para mujer"
+        },
+        {
+          "key": "peinado_ocasion",
+          "nombre": "Peinado ocasiones especiales",
+          "precio": 35,
+          "duracionMinutos": 45,
+          "categoria": "Servicios para mujer"
+        },
+        {
+          "key": "lavar_peinar",
+          "nombre": "Lavar y peinar",
+          "precio": 20,
+          "duracionMinutos": 20,
+          "categoria": "Servicios para mujer"
+        },
+        {
+          "key": "limpieza_facial",
+          "nombre": "Limpieza facial",
+          "precio": 25,
+          "duracionMinutos": 30,
+          "categoria": "Servicios para mujer"
+        }
+      ],
+      "googleCalendar": {
+        "calendarId": "416c7c3f1d1fa4c82c9bf87ef6400bb3ae6a1cc50342613c6ca0b841904deeb7@group.calendar.google.com",
+        "calendarName": "Citas BotBarberia"
+      }
+    },
+    {
+      "id": "barber-paris",
+      "nombre": "Barber Paris",
+      "phoneNumberId": "1270395019495649",
+      "timezone": "Europe/Madrid",
+      "horario": {
+        "horarioPorDia": {
+          "1": [
+            {
+              "horaInicio": 10,
+              "horaFin": 14
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 21
+            }
+          ],
+          "2": [
+            {
+              "horaInicio": 10,
+              "horaFin": 14
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 21
+            }
+          ],
+          "3": [
+            {
+              "horaInicio": 10,
+              "horaFin": 14
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 21
+            }
+          ],
+          "4": [
+            {
+              "horaInicio": 10,
+              "horaFin": 14
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 21
+            }
+          ],
+          "5": [
+            {
+              "horaInicio": 10,
+              "horaFin": 14
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 21
+            }
+          ],
+          "6": [
+            {
+              "horaInicio": 10,
+              "horaFin": 14
+            },
+            {
+              "horaInicio": 16,
+              "horaFin": 21
+            }
+          ]
+        }
+      },
+      "servicios": [
+        {
+          "key": "corte",
+          "nombre": "Corte de pelo",
+          "precio": 15,
+          "duracionMinutos": 30
+        },
+        {
+          "key": "barba",
+          "nombre": "Barba",
+          "precio": 10,
+          "duracionMinutos": 20
+        },
+        {
+          "key": "corte_barba",
+          "nombre": "Corte + barba",
+          "precio": 22,
+          "duracionMinutos": 45
+        }
       ],
       "googleCalendar": {
         "calendarId": "416c7c3f1d1fa4c82c9bf87ef6400bb3ae6a1cc50342613c6ca0b841904deeb7@group.calendar.google.com",
